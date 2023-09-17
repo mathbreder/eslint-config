@@ -15,7 +15,7 @@ module.exports = {
     ecmaVersion: 'latest',
     sourceType: 'module',
   },
-  plugins: [ '@typescript-eslint' ],
+  plugins: [ '@typescript-eslint', 'import' ],
   rules: {
     '@typescript-eslint/member-delimiter-style': 'warn',
     '@typescript-eslint/naming-convention': 'warn',
@@ -57,7 +57,7 @@ module.exports = {
       [ require.resolve( '@typescript-eslint/parser' ) ]: [ '.ts', '.tsx', '.d.ts' ],
     },
     'import/resolver': {
-      typescript: true,
+      typescript: { alwaysTryTypes: true },
       node: true,
     },
   },
