@@ -11,11 +11,11 @@
 
 Install dependencies:
 ```
-npm i -D eslint @rocketseat/eslint-config
+npm i -D eslint https://github.com/mathbreder/eslint-config.git
 ```
 Inside `.eslintrc.json`
 ```
 {
-  "extends": "@rocketseat/eslint-config/node"
+  "extends": "@mbreder/eslint-config/node"
 }
 ```
