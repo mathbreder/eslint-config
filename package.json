@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "prepack": "pnpm run build",
-    "clean": "pnpx rimraf dist node_modules",
+    "clean": "pnpx rimraf dist",
     "prebuild": "pnpm run clean",
     "build": "tsup",
     "lint": "eslint \"src/**/*.ts\""

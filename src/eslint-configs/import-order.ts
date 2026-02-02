@@ -51,7 +51,27 @@ const importOrderRule: ImportOrderRule = [
 ];
 
 export const getEslintImportConfig = (project?: string): Config[] => {
-  const __filename = fileURLToPath(import.meta.url);
+  // Determine filename at runtime for both ESM and CJS without triggering build-time
+  // warnings. We access `import.meta.url` and `__filename` via `eval` so the
+  // bundler doesn't statically detect them when producing CJS output.
+  const __filename = (() => {
+    try {
+      // ESM: use import.meta.url via eval to avoid static analysis warnings
+      // eslint-disable-next-line no-eval
+      const metaUrl = eval('import.meta.url') as string;
+      return fileURLToPath(metaUrl);
+    } catch {
+      try {
+        // CJS: __filename is a local var; access it via eval
+        // eslint-disable-next-line no-eval
+        return eval('__filename') as string;
+      } catch {
+        // Fallback to process cwd (last resort)
+        return path.join(process.cwd(), 'index.js');
+      }
+    }
+  })();
+
   const tsConfigPath = project || path.join(path.dirname(__filename), 'tsconfig.json');
   return [
     {
