@@ -19,3 +19,6 @@ Inside `.eslintrc.json`
   "extends": "@mbreder/eslint-config/node"
 }
 ```
+
+## Automated dependency updates 🔄
+We use Dependabot to keep dependencies and GitHub Actions up to date. Dependabot opens weekly pull requests with suggested upgrades so you can review and merge them.
