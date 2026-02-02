@@ -1,5 +1,6 @@
 import { defineConfig } from 'tsup';
 import pkg from './package.json';
+import { fixBuildImportsPlugin } from './src';
 
 // Externalize runtime packages so we don't bundle ESLint plugins and their
 // CommonJS helpers into the published bundle. This avoids dynamic require
@@ -27,10 +28,14 @@ export default defineConfig({
   // Prevent bundling native modules and runtime dependencies
   external: Array.from(deps),
 
+  treeshake: true,
+
   // Ensure node platform handling for native modules
   esbuildOptions(options) {
     options.platform = 'node';
     options.splitting = false; // reforça para esbuild caso necessário
     return options;
   },
+
+  plugins: [fixBuildImportsPlugin]
 });
