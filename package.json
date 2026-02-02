@@ -1,5 +1,5 @@
 {
-  "name": "@mbreder/eslint-config",
+  "name": "@mathbreder/eslint-config",
   "version": "0.0.1",
   "private": false,
   "description": "ESLint configuration used by mathbreder.",
