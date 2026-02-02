@@ -17,7 +17,7 @@ const cleanPlugins = (configs: Config[]): Config[] => {
   return configs;
 };
 
-export const defineConfig = (...args: any[]): Config[] => {
-  const configs = (defaultDefineConfig as any)(...args) as Config[];
+export const defineConfig = (...args: unknown[]): Config[] => {
+  const configs = defaultDefineConfig(...args) as Config[];
   return cleanPlugins(configs);
 };

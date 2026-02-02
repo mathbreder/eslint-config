@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 
 import swc, { type JscConfig, type JscTarget } from '@swc/core';
-import { type BuildOptions, type Plugin as EsbuildPlugin, type PluginBuild, type TsconfigRaw } from 'esbuild';
 
+import { type BuildOptions, type Plugin as EsbuildPlugin, type PluginBuild, type TsconfigRaw } from 'esbuild';
 import type { TsupPlugin } from '../types/tsup-plugin';
 
 export type OverrideSwcOptions = BuildOptions & {
