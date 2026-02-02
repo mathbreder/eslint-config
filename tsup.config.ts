@@ -11,7 +11,7 @@ const deps = new Set([
 
 export default defineConfig({
   entry: [
-    'src/index.ts',
+    // 'src/index.ts',
     'src/**/*.{ts,tsx}'
   ],
   dts: true,
@@ -22,6 +22,7 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   splitting: false, // <- desativa geração de chunks
+  bundle: false,
 
   // Prevent bundling native modules and runtime dependencies
   external: Array.from(deps),
