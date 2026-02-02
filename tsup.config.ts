@@ -1,4 +1,14 @@
 import { defineConfig } from 'tsup';
+import pkg from './package.json';
+
+// Externalize runtime packages so we don't bundle ESLint plugins and their
+// CommonJS helpers into the published bundle. This avoids dynamic require
+// errors when our ESM build is imported by consumers.
+const deps = new Set([
+  ...Object.keys(pkg.dependencies || {}),
+  ...Object.keys(pkg.peerDependencies || {}),
+  ...Object.keys(pkg.devDependencies || {}),
+]);
 
 export default defineConfig({
   entry: ['src/index.ts'],
@@ -10,15 +20,8 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
 
-  // Prevent bundling native @swc modules and Babel preset package.json which
-  // cause esbuild/tsup to error when resolving platform-specific binaries.
-  external: [
-    '@swc/wasm',
-    '@swc/core',
-    '@babel/preset-typescript',
-    '@babel/preset-typescript/package.json',
-    'esbuild'
-  ],
+  // Prevent bundling native modules and runtime dependencies
+  external: Array.from(deps),
 
   // Ensure node platform handling for native modules
   esbuildOptions(options) {
