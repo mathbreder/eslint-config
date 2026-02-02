@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Config } from 'eslint/config';
 import importPlugin from 'eslint-plugin-import';
 
-import { getFilename as getFilenameESM } from '../runtime/get-filename.mts';
+import { getFilename as getFilenameESM } from '../runtime/get-filename';
 
 type Severity = 'error' | 'off' | 'warn' | 0 | 1 | 2;
 type ImportOrderRule = [Severity, Record<string, unknown>];
