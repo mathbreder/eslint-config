@@ -3,7 +3,15 @@
   "version": "0.0.1",
   "private": false,
   "description": "ESLint configuration used by mathbreder.",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "prepack": "pnpm run build",
+    "clean": "pnpx rimraf dist node_modules",
+    "prebuild": "pnpm run clean",
+    "build": "tsup",
+    "lint": "eslint \"src/**/*.ts\""
+  },
   "license": "MIT",
   "repository": {
     "url": "mathbreder/eslint-config"
@@ -17,23 +25,37 @@
       "optional": true
     }
   },
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
+    "@eslint/js": "^9.39.2",
+    "@stylistic/eslint-plugin": "^5.5.0",
+    "@swc/core": "^1.15.3",
+    "@types/eslint-plugin-jsx-a11y": "^6.10.1",
+    "@types/node": "^20.11.0",
     "@typescript-eslint/eslint-plugin": "^5.25.0",
     "@typescript-eslint/parser": "^5.25.0",
-    "eslint": "^8.0.0",
+    "esbuild": "^0.27.0",
+    "eslint": "^9",
+    "eslint-config-expo": "~10.0.0",
+    "eslint-config-next": "16.0.1",
     "eslint-config-prettier": "^8.5.0",
-    "eslint-config-standard": "^17.0.0",
-    "eslint-import-resolver-typescript": "^3.6.0",
-    "eslint-plugin-import": "^2.28.1",
-    "eslint-plugin-jsx-a11y": "^6.5.1",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-n": "^15.2.0",
+    "eslint-plugin-perfectionist": "^4.15.1",
     "eslint-plugin-prettier": "5.0.0-alpha.2",
     "eslint-plugin-promise": "^6.0.0",
-    "eslint-plugin-react": "^7.30.0",
-    "eslint-plugin-react-hooks": "^4.5.0",
-    "prettier": "^3.0.0"
-  },
-  "devDependencies": {
-    "typescript": "^5.2.2"
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "fast-glob": "^3.3.3",
+    "globals": "^16.5.0",
+    "prettier": "^3.0.0",
+    "prettier-plugin-tailwindcss": "^0.5.14",
+    "rimraf": "^6.1.2",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.3"
   }
 }

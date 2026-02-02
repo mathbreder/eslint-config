@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "allowJs": true,
+    "declaration": true,
+    "declarationMap": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "outDir": "dist",
+    "rootDirs": [".", "src"],
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo",
+    "composite": false,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "rewriteRelativeImportExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": false
+  },
+  "include": ["./src/**/*", "./tsup.config.ts"],
+  "exclude": ["node_modules", "dist/**/*"]
+}
