@@ -68,6 +68,9 @@ Aliases are not ignored by default: an alias declared in `tsconfig.json` is reso
 - `no-unsafe-optional-chaining` also reports arithmetic on optional chains (`usuario?.saldo * 2`). Provide an explicit fallback that matches your business rule, for example `(usuario?.saldo ?? 0) * 2`.
 - TypeScript rules enabled individually from `typescript-eslint` (not the full preset): `ban-ts-comment` (descriptions of at least 10 characters), `no-array-constructor`, `no-duplicate-enum-values`, `no-non-null-asserted-optional-chain`, `no-unsafe-declaration-merging`, `no-unsafe-function-type`, `no-unused-expressions`, `prefer-as-const`, `prefer-namespace-keyword`, `no-misused-new`, `triple-slash-reference`, `no-extra-non-null-assertion` and `no-wrapper-object-types`.
 - `prefer-rest-params` and `prefer-spread` are enabled.
+- Quality rules, all `warn` with default options unless noted: `max-depth` (reports more than 4 nesting levels), `max-params` (max 5 parameters), `no-else-return`, `no-nested-ternary`, `no-useless-return`, `object-shorthand` and `prefer-template`. They do not change the limits already set for `max-lines-per-function` and `complexity`.
+- `@stylistic/no-extra-semi` (error) rejects duplicated semicolons such as `const valor = 10;;`. It works with `@stylistic/semi`: applying the automatic fix leaves no remaining message from either rule.
+- `no-alert` (warn) is enabled only by the React/Next preset, for `.jsx` and `.tsx` files. It is not part of `baseConfig`, so Node.js projects and libraries are not affected. `expoConfig` is not changed.
 - `curly` is not enabled, so both `if (ativo) executar();` and `if (ativo) { executar(); }` are accepted. `@stylistic/brace-style` still controls how existing braces are formatted.
 - `@stylistic/no-multiple-empty-lines` allows one empty line between blocks and one at the end of the file, and forbids empty lines at the start of the file.
 - `no-unassigned-vars`, `no-useless-assignment` and `preserve-caught-error` are enabled as `error` with default options. `preserve-caught-error` expects the original error in `cause`:
@@ -135,6 +138,9 @@ The rules in this section apply to `.ts`, `.tsx`, `.mts` and `.cts` files. `.mts
   ```
 - `no-inferrable-types` is not enabled, so `let a: number = 1;` is accepted. The rule cannot distinguish `let` from `const`, so it stays off.
 
+- `@typescript-eslint/member-ordering` (warn, default options) checks the order of class and interface members. It does not impose alphabetical order. Overload signatures are not treated as a violation: `adjacent-overload-signatures` (error) keeps overloads consecutive, and `no-dupe-class-members` (TypeScript-aware, error) reports real duplicate implementations.
+- `@typescript-eslint/no-empty-function` (warn) reports empty constructors, methods, callbacks and functions. Two official exceptions are enabled because empty bodies are intentional there: `overrideMethods` (an overridden method emptied on purpose) and `decoratedFunctions` (members used by decorators). Test files (`**/*.{test,spec}.{ts,tsx}` and `**/tests/**`) are not checked by this rule. For other cases, use an inline `eslint-disable` comment with a description.
+
 The native rules below are turned off for TypeScript files only. The TypeScript compiler already checks declarations, types, overloads and identifiers, and these native rules can report false positives on them:
 
 - `no-redeclare`: TypeScript allows declaration merging and overloads.
@@ -144,11 +150,37 @@ The native rules below are turned off for TypeScript files only. The TypeScript 
 
 JavaScript keeps all of these native rules enabled.
 
+### Type-checked rules (opt-in)
+
+`typeCheckedConfig` adds rules that need type information. It is not part of `baseConfig`, so projects without type-checking are not required to use it. It enables `@typescript-eslint/no-floating-promises` (error) for `.ts`, `.tsx`, `.mts` and `.cts` files, and uses `parserOptions.projectService: true`. Each file is checked against the nearest `tsconfig.json` of the consuming project, so monorepos with several `tsconfig.json` files work without extra configuration. A file that is not included in any `tsconfig.json` is reported as a parsing error, not ignored.
+
+```js
+import { eslintConfigs } from '@mathbreder/eslint-config';
+
+export default eslintConfigs.defineConfig([
+  ...eslintConfigs.baseConfig,
+  ...eslintConfigs.typeCheckedConfig,
+]);
+```
+
+`no-floating-promises` reports a promise that is called and neither awaited, returned, handled with `.catch()` nor marked with `void`:
+
+```ts
+async function salvar() {
+  await gravarNoBanco();
+}
+
+salvar(); // reported: wrap it with await, return, .catch() or void
+```
+
+`void salvar();` is accepted by default (`ignoreVoid`). This marks the promise as intentionally discarded, but it does not handle a rejection: if `salvar` rejects, the error is still unhandled. Use `.catch()` or `try`/`await` when the error must be handled.
+
 ### Inherited from presets
 
 - `js.configs.recommended` (`@eslint/js`) supplies the core ESLint error rules, such as `no-cond-assign`, `no-unreachable`, `no-useless-escape`, `no-undef` and `no-redeclare` (the last two are off for TypeScript, see above). The config does not repeat them.
 - `reactPlugin` recommended supplies `react/jsx-no-comment-textnodes`, `react/jsx-no-undef`, `react/jsx-uses-vars`, `react/no-children-prop`, `react/no-danger-with-children`, `react/no-deprecated`, `react/no-direct-mutation-state` and `react/no-find-dom-node`, all as error.
-- `react-hooks` recommended supplies `react-hooks/rules-of-hooks` (error) and `react-hooks/exhaustive-deps` (warn). Custom hook names are not set globally; configure `react-hooks` in the project when needed.
+- `react-hooks` recommended supplies `react-hooks/rules-of-hooks` (error), `react-hooks/exhaustive-deps` (warn), `react-hooks/incompatible-library` (warn), `react-hooks/unsupported-syntax` (warn) and the other rules of the preset as error (`config`, `error-boundaries`, `gating`, `globals`, `immutability`, `preserve-manual-memoization`, `purity`, `refs`, `set-state-in-effect`, `set-state-in-render`, `use-memo`, `component-hook-factories`). `react-hooks/static-components` is off by project decision. Custom hook names are not set globally; configure `react-hooks` in the project when needed.
+- `jsx-a11y` recommended supplies `alt-text`, `aria-props`, `aria-proptypes`, `aria-unsupported-elements`, `role-has-required-aria-props` and `role-supports-aria-props`, all as error without options. Custom components (for example an `Image` component that renders `img`) are not declared globally; configure `jsx-a11y` in the project that uses them.
 
 ### React Refresh for Vite
 
@@ -173,6 +205,15 @@ export default eslintConfigs.defineConfig([
 
 Components exported by a file are accepted. Exporting a helper function or a non-primitive object from a component file triggers the warning, because Fast Refresh can then reload the file incorrectly.
 
+### Rules intentionally not enabled
+
+- Retired TypeScript rules, not to be added: `@typescript-eslint/ban-types` (use `no-empty-object-type`, `no-unsafe-function-type` and `no-wrapper-object-types`, plus `no-restricted-types` when needed), `@typescript-eslint/indent` (use `@stylistic/indent`) and `@typescript-eslint/no-var-requires` (use `no-require-imports`). `no-empty-interface` is also not enabled, because `no-empty-object-type` replaces it.
+- `perfectionist/sort-imports` is not enabled. Import order is handled by `import/order`, with per-project `pathGroups` and alphabetical sorting. Perfectionist stays for union and intersection types.
+- `import/no-duplicates` is not enabled. `no-duplicate-imports` (error) remains the duplicate-import rule. It also reports `import type` and value imports from the same module, which `import/no-duplicates` would accept as separate by default. Re-exports are not reported in this configuration (`no-duplicate-imports` runs with `includeExports: false`).
+- `prettier/prettier` is not enabled. Formatting is handled by the `@stylistic` rules and the JSX rules of this configuration. Migrating to Prettier is a separate decision.
+- `no-restricted-globals` (for example `$` and `jQuery`) is not enabled globally. Projects that need these restrictions configure them in their own `eslint.config`.
+- `@dword-design/import-alias` is not used. Alias requirements are project-specific: configure `pathGroups` and `noUnresolvedIgnore` in `getEslintImportConfig`.
+
 ### Known conflicts
 
 - `export default () => <div />` triggers `react/display-name` (warn). The config sets `react/function-component-definition` to `unnamedComponents: 'arrow-function'`, so anonymous arrow components are not reported as errors.
@@ -184,7 +225,7 @@ Components exported by a file are accepted. Exporting a helper function or a non
 pnpm test
 ```
 
-Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), the TypeScript native overrides and overloads, `no-require-imports` with `allow`, `import/order`, `import/no-unresolved` (including the `@/` alias), JSX indentation, `react/display-name`, React Hooks, the opt-in React Refresh preset, and the effective severities of inherited rules.
+Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), the TypeScript native overrides and overloads, `no-require-imports` with `allow`, `import/order`, `import/no-unresolved` (including the `@/` alias), JSX indentation, `react/display-name`, React Hooks, the opt-in React Refresh preset, the type-checked preset (`no-floating-promises` on real files, across two `tsconfig.json` projects, and an out-of-project file), the quality rules and `no-alert` by preset, and the effective severities of inherited rules.
 
 ## Automated dependency updates 🔄
 We use Dependabot to keep dependencies and GitHub Actions up to date. Dependabot opens weekly pull requests with suggested upgrades so you can review and merge them.

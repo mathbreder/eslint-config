@@ -31,6 +31,7 @@ export const reactNextConfig = defineConfig([
     },
     rules: {
       // React specific rules
+      'no-alert': 'warn',
       'react/checked-requires-onchange-or-readonly': [ 'error' ],
       'react/display-name': [
         'warn',

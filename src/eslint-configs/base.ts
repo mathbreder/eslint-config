@@ -80,6 +80,18 @@ export const baseConfig = defineConfig([
       'prefer-spread': 'error',
       'no-unsafe-optional-chaining': ['error', { disallowArithmeticOperators: true }],
       'eqeqeq': ['error', 'always'],
+      'max-depth': 'warn',
+      'max-params': [
+        'warn',
+        {
+          max: 5,
+        },
+      ],
+      'no-else-return': 'warn',
+      'no-nested-ternary': 'warn',
+      'no-useless-return': 'warn',
+      'object-shorthand': 'warn',
+      'prefer-template': 'warn',
       'no-unassigned-vars': 'error',
       'no-useless-assignment': 'error',
       'preserve-caught-error': 'error',
@@ -183,6 +195,7 @@ export const baseConfig = defineConfig([
       '@stylistic/object-property-newline': ['error', { 'allowAllPropertiesOnSameLine': true }],
       '@stylistic/quotes': ['error', 'single'],
       '@stylistic/semi': ['error', 'always'],
+      '@stylistic/no-extra-semi': 'error',
       '@stylistic/space-in-parens': ['error', 'never'],
 
       // Require descriptions for eslint directive comments
@@ -214,6 +227,8 @@ export const baseConfig = defineConfig([
       '@typescript-eslint/no-empty-object-type': 'error',
       '@typescript-eslint/prefer-for-of': 'warn',
       '@typescript-eslint/prefer-function-type': 'warn',
+      '@typescript-eslint/member-ordering': 'warn',
+      '@typescript-eslint/no-empty-function': ['warn', { allow: ['overrideMethods', 'decoratedFunctions'] }],
       '@typescript-eslint/explicit-member-accessibility': [
         'warn',
         {
@@ -238,6 +253,7 @@ export const baseConfig = defineConfig([
     rules: {
       'max-lines-per-function': 'off',
       'complexity': 'off',
+      '@typescript-eslint/no-empty-function': 'off',
     },
     languageOptions: {
       globals: {
