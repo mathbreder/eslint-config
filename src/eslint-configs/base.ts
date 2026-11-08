@@ -79,6 +79,7 @@ export const baseConfig = defineConfig([
       'prefer-rest-params': 'error',
       'prefer-spread': 'error',
       'no-unsafe-optional-chaining': ['error', { disallowArithmeticOperators: true }],
+      'eqeqeq': ['error', 'always'],
 
       // Typescript specific rules
       '@typescript-eslint/no-unused-vars': [
@@ -98,6 +99,20 @@ export const baseConfig = defineConfig([
       '@typescript-eslint/triple-slash-reference': 'error',
       '@typescript-eslint/no-extra-non-null-assertion': 'error',
       '@typescript-eslint/no-wrapper-object-types': 'error',
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          minimumDescriptionLength: 10,
+        },
+      ],
+      '@typescript-eslint/no-array-constructor': 'error',
+      '@typescript-eslint/no-duplicate-enum-values': 'error',
+      '@typescript-eslint/no-non-null-asserted-optional-chain': 'error',
+      '@typescript-eslint/no-unsafe-declaration-merging': 'error',
+      '@typescript-eslint/no-unsafe-function-type': 'error',
+      '@typescript-eslint/no-unused-expressions': 'error',
+      '@typescript-eslint/prefer-as-const': 'error',
+      '@typescript-eslint/prefer-namespace-keyword': 'error',
 
       // Perfectionist rules
       'perfectionist/sort-intersection-types': [

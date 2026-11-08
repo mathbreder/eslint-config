@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import path from 'node:path';
 import { test } from 'node:test';
 
 import { getEslintImportConfig } from '../dist/index.js';
@@ -46,6 +47,14 @@ test('alias declarado no tsconfig é resolvido', () => {
   assert.equal(unresolvedFor("import { a } from '@app/a';\n\nexport const x = a;\n", '@app/a').length, 0);
 });
 
+test('alias @/ declarado no tsconfig é resolvido', () => {
+  assert.equal(unresolvedFor("import { a } from '@/app/a';\n\nexport const x = a;\n", '@/app/a').length, 0);
+});
+
+test('alias @/ inexistente continua reportado como não resolvido', () => {
+  assert.equal(unresolvedFor("import { m } from '@/missing';\n\nexport const x = m;\n", '@/missing').length, 1);
+});
+
 test('alias inexistente continua reportado como não resolvido', () => {
   const code = "import { m } from '@app/missing';\n\nexport const x = m;\n";
   assert.equal(unresolvedFor(code, '@app/missing').length, 1);
@@ -66,6 +75,12 @@ test('sem noUnresolvedIgnore, módulo virtual é reportado como não resolvido',
 test('project aceita um array de tsconfigs', () => {
   const code = "import { a } from '@app/a';\n\nexport const x = a;\n";
   assert.equal(unresolvedFor(code, '@app/a', { project: [fixtureTsconfig] }).length, 0);
+});
+
+test('project relativo é resolvido a partir da raiz de execução', () => {
+  const code = "import { a } from '@app/a';\n\nexport const x = a;\n";
+  const relativeProject = path.relative(process.cwd(), fixtureTsconfig);
+  assert.equal(unresolvedFor(code, '@app/a', { project: relativeProject }).length, 0);
 });
 
 test('sem project, o resolver usa o tsconfig.json do diretório de execução', () => {

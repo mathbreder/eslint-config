@@ -60,6 +60,15 @@ Aliases are not ignored by default: an alias declared in `tsconfig.json` is reso
   ```
   Setting `displayName` manually is also accepted.
 - `max-lines-per-function` is set to 80 lines, ignoring blank lines and comments. Test files are exempt.
+- `eqeqeq` requires strict comparison (`===`/`!==`), including with `null`. Use `value === null || value === undefined` instead of `value == null`.
+- `no-unsafe-optional-chaining` also reports arithmetic on optional chains (`usuario?.saldo * 2`). Provide an explicit fallback that matches your business rule, for example `(usuario?.saldo ?? 0) * 2`.
+- TypeScript rules enabled individually from `typescript-eslint` (not the full preset): `ban-ts-comment` (descriptions of at least 10 characters), `no-array-constructor`, `no-duplicate-enum-values`, `no-non-null-asserted-optional-chain`, `no-unsafe-declaration-merging`, `no-unsafe-function-type`, `no-unused-expressions`, `prefer-as-const`, `prefer-namespace-keyword`, `no-misused-new`, `triple-slash-reference`, `no-extra-non-null-assertion` and `no-wrapper-object-types`.
+- `prefer-rest-params` and `prefer-spread` are enabled.
+
+### Inherited from presets
+
+- `js.configs.recommended` (`@eslint/js`) supplies the core ESLint error rules, such as `no-cond-assign`, `no-unreachable` and `no-useless-escape`. The config does not repeat them.
+- `react-hooks` recommended supplies `react-hooks/rules-of-hooks` (error) and `react-hooks/exhaustive-deps` (warn). Custom hook names are not set globally; configure `react-hooks` in the project when needed.
 
 ### Known conflicts
 
@@ -72,7 +81,7 @@ Aliases are not ignored by default: an alias declared in `tsconfig.json` is reso
 pnpm test
 ```
 
-Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, `import/order`, `import/no-unresolved`, JSX indentation, `react/display-name` and the severities of the inherited rules.
+Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), `import/order`, `import/no-unresolved`, JSX indentation, `react/display-name`, React Hooks, and the effective severities of inherited rules.
 
 ## Automated dependency updates 🔄
 We use Dependabot to keep dependencies and GitHub Actions up to date. Dependabot opens weekly pull requests with suggested upgrades so you can review and merge them.
