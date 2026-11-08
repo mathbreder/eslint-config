@@ -7,7 +7,7 @@
 
 ## Setup
 
-Requires ESLint 9 (flat config). The package exports `eslintConfigs` (presets) and `getEslintImportConfig` (import rules).
+Requires ESLint 9.35 or newer (flat config). Version 9.35 is the minimum because of the `preserve-caught-error` rule. The package exports `eslintConfigs` (presets) and `getEslintImportConfig` (import rules).
 
 Install the package together with the peer dependencies listed in its `package.json`:
 ```
@@ -68,6 +68,19 @@ Aliases are not ignored by default: an alias declared in `tsconfig.json` is reso
 - `no-unsafe-optional-chaining` also reports arithmetic on optional chains (`usuario?.saldo * 2`). Provide an explicit fallback that matches your business rule, for example `(usuario?.saldo ?? 0) * 2`.
 - TypeScript rules enabled individually from `typescript-eslint` (not the full preset): `ban-ts-comment` (descriptions of at least 10 characters), `no-array-constructor`, `no-duplicate-enum-values`, `no-non-null-asserted-optional-chain`, `no-unsafe-declaration-merging`, `no-unsafe-function-type`, `no-unused-expressions`, `prefer-as-const`, `prefer-namespace-keyword`, `no-misused-new`, `triple-slash-reference`, `no-extra-non-null-assertion` and `no-wrapper-object-types`.
 - `prefer-rest-params` and `prefer-spread` are enabled.
+- `curly` is not enabled, so both `if (ativo) executar();` and `if (ativo) { executar(); }` are accepted. `@stylistic/brace-style` still controls how existing braces are formatted.
+- `@stylistic/no-multiple-empty-lines` allows one empty line between blocks and one at the end of the file, and forbids empty lines at the start of the file.
+- `no-unassigned-vars`, `no-useless-assignment` and `preserve-caught-error` are enabled as `error` with default options. `preserve-caught-error` expects the original error in `cause`:
+  ```js
+  try {
+    await salvar();
+  } catch (error) {
+    throw new Error('Falha ao salvar', {
+      cause: error,
+    });
+  }
+  ```
+- Import organization uses `import/order`. `perfectionist/sort-imports` is not enabled, so the two rules do not conflict. Perfectionist still sorts union and intersection types.
 
 ### TypeScript files
 
@@ -100,6 +113,27 @@ The rules in this section apply to `.ts`, `.tsx`, `.mts` and `.cts` files. `.mts
     },
   }
   ```
+
+- `@typescript-eslint/array-type` (warn, `array-simple`): simple types use `string[]` and `readonly string[]`; complex types keep `Array<string | number>`. `Array<string>` and `ReadonlyArray<string>` are reported.
+- `@typescript-eslint/consistent-type-assertions` (warn): prefers `value as Type` over `<Type>value`. Object literal assertions with `as` are accepted.
+- `@typescript-eslint/no-empty-object-type` (error) replaces the deprecated `no-empty-interface`, which is not enabled. Empty interfaces, empty interfaces that only extend another, and `{}` are reported. An interface that extends another and adds members is accepted.
+- `@typescript-eslint/prefer-for-of` (warn): an index loop that only reads array elements should be a `for...of` loop. Loops that use the index are accepted.
+- `@typescript-eslint/prefer-function-type` (warn): an interface with a single call signature and no other members should be a function type. Interfaces with extra members or several call signatures are accepted.
+- `@typescript-eslint/explicit-member-accessibility` (warn, `explicit`, constructors `no-public`): class members need explicit `private`, `protected` or `public`, including accessors and parameter properties. Constructors must not declare `public`:
+  ```ts
+  class Usuario {
+    private nome: string;
+
+    constructor(nome: string) {
+      this.nome = nome;
+    }
+
+    public obterNome(): string {
+      return this.nome;
+    }
+  }
+  ```
+- `no-inferrable-types` is not enabled, so `let a: number = 1;` is accepted. The rule cannot distinguish `let` from `const`, so it stays off.
 
 The native rules below are turned off for TypeScript files only. The TypeScript compiler already checks declarations, types, overloads and identifiers, and these native rules can report false positives on them:
 

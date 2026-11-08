@@ -80,6 +80,9 @@ export const baseConfig = defineConfig([
       'prefer-spread': 'error',
       'no-unsafe-optional-chaining': ['error', { disallowArithmeticOperators: true }],
       'eqeqeq': ['error', 'always'],
+      'no-unassigned-vars': 'error',
+      'no-useless-assignment': 'error',
+      'preserve-caught-error': 'error',
 
       // Typescript specific rules
       '@typescript-eslint/no-unused-vars': [
@@ -167,7 +170,7 @@ export const baseConfig = defineConfig([
         },
       ],
       '@stylistic/no-multi-spaces': ['error'],
-      '@stylistic/no-multiple-empty-lines': ['error', { 'max': 1, 'maxEOF': 1 }],
+      '@stylistic/no-multiple-empty-lines': ['error', { 'max': 1, 'maxBOF': 0, 'maxEOF': 1 }],
       '@stylistic/no-trailing-spaces': ['error'],
       '@stylistic/object-curly-newline': [
         'error',
@@ -201,6 +204,25 @@ export const baseConfig = defineConfig([
       '@typescript-eslint/adjacent-overload-signatures': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/no-require-imports': 'error',
+      '@typescript-eslint/array-type': [
+        'warn',
+        {
+          default: 'array-simple',
+        },
+      ],
+      '@typescript-eslint/consistent-type-assertions': 'warn',
+      '@typescript-eslint/no-empty-object-type': 'error',
+      '@typescript-eslint/prefer-for-of': 'warn',
+      '@typescript-eslint/prefer-function-type': 'warn',
+      '@typescript-eslint/explicit-member-accessibility': [
+        'warn',
+        {
+          accessibility: 'explicit',
+          overrides: {
+            constructors: 'no-public',
+          },
+        },
+      ],
     },
   },
   {
