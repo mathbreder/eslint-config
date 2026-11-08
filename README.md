@@ -35,7 +35,11 @@ Presets available in `eslintConfigs`:
 
 - `baseConfig`: TypeScript, stylistic and perfectionist rules, plus general ESLint rules.
 - `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects.
-- `expoConfig`: Expo defaults.
+- `expoConfig`: Expo defaults. It registers its own `react-hooks` plugin, so do not combine it with `reactNextConfig` in the same config array.
+
+Opt-in preset, not included in `eslintConfigs`:
+
+- `viteReactRefreshConfig`, from `@mathbreder/eslint-config/react-refresh-vite`: see [React Refresh for Vite](#react-refresh-for-vite).
 
 ### `getEslintImportConfig(options?)`
 
@@ -65,10 +69,75 @@ Aliases are not ignored by default: an alias declared in `tsconfig.json` is reso
 - TypeScript rules enabled individually from `typescript-eslint` (not the full preset): `ban-ts-comment` (descriptions of at least 10 characters), `no-array-constructor`, `no-duplicate-enum-values`, `no-non-null-asserted-optional-chain`, `no-unsafe-declaration-merging`, `no-unsafe-function-type`, `no-unused-expressions`, `prefer-as-const`, `prefer-namespace-keyword`, `no-misused-new`, `triple-slash-reference`, `no-extra-non-null-assertion` and `no-wrapper-object-types`.
 - `prefer-rest-params` and `prefer-spread` are enabled.
 
+### TypeScript files
+
+The rules in this section apply to `.ts`, `.tsx`, `.mts` and `.cts` files. `.mts` and `.cts` also receive the base configuration.
+
+- `@typescript-eslint/adjacent-overload-signatures` (error): overloads of the same method, function or interface member must be consecutive. This rule has no autofix, so reorder the signatures manually. Valid overloads are not reported:
+  ```ts
+  class Conversor {
+    converter(value: string): string;
+    converter(value: number): string;
+    converter(value: string | number) {
+      return String(value);
+    }
+
+    limpar() {}
+  }
+  ```
+- `@typescript-eslint/no-dupe-class-members` (error) replaces the native `no-dupe-class-members` in TypeScript. It reports real duplicate implementations and accepts overload signatures.
+- `@typescript-eslint/no-non-null-assertion` (warn): discourages `!`, but does not forbid it when you know a guarantee from outside the code. A single `!` is reported as a warning; `!!` is reported as an error by `no-extra-non-null-assertion`.
+- `@typescript-eslint/no-require-imports` (error): use `import` instead of `require()`. Projects can allow specific paths in their own config, without changing the shared configuration:
+  ```js
+  // eslint.config.mjs of the consuming project
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-require-imports': [
+        'error',
+        { allow: ['\\.(png|jpg|svg|json)$'] },
+      ],
+    },
+  }
+  ```
+
+The native rules below are turned off for TypeScript files only. The TypeScript compiler already checks declarations, types, overloads and identifiers, and these native rules can report false positives on them:
+
+- `no-redeclare`: TypeScript allows declaration merging and overloads.
+- `no-undef`: TypeScript resolves types and global declarations itself.
+- `no-dupe-class-members`: replaced by the TypeScript-aware version above.
+- `no-array-constructor` and `no-unused-expressions`: replaced by their `@typescript-eslint` versions.
+
+JavaScript keeps all of these native rules enabled.
+
 ### Inherited from presets
 
-- `js.configs.recommended` (`@eslint/js`) supplies the core ESLint error rules, such as `no-cond-assign`, `no-unreachable` and `no-useless-escape`. The config does not repeat them.
+- `js.configs.recommended` (`@eslint/js`) supplies the core ESLint error rules, such as `no-cond-assign`, `no-unreachable`, `no-useless-escape`, `no-undef` and `no-redeclare` (the last two are off for TypeScript, see above). The config does not repeat them.
+- `reactPlugin` recommended supplies `react/jsx-no-comment-textnodes`, `react/jsx-no-undef`, `react/jsx-uses-vars`, `react/no-children-prop`, `react/no-danger-with-children`, `react/no-deprecated`, `react/no-direct-mutation-state` and `react/no-find-dom-node`, all as error.
 - `react-hooks` recommended supplies `react-hooks/rules-of-hooks` (error) and `react-hooks/exhaustive-deps` (warn). Custom hook names are not set globally; configure `react-hooks` in the project when needed.
+
+### React Refresh for Vite
+
+`viteReactRefreshConfig` enables `react-refresh/only-export-components` as `warn`, with `allowConstantExport: true`, for `.jsx` and `.tsx` files. It is not part of `baseConfig`, `reactNextConfig` or `expoConfig`, and it is not loaded when you import the main package.
+
+Install the optional plugin in your project, then add the preset:
+
+```
+pnpm add -D eslint-plugin-react-refresh
+```
+
+```js
+import { eslintConfigs } from '@mathbreder/eslint-config';
+import { viteReactRefreshConfig } from '@mathbreder/eslint-config/react-refresh-vite';
+
+export default eslintConfigs.defineConfig([
+  ...eslintConfigs.baseConfig,
+  ...eslintConfigs.reactNextConfig,
+  ...viteReactRefreshConfig,
+]);
+```
+
+Components exported by a file are accepted. Exporting a helper function or a non-primitive object from a component file triggers the warning, because Fast Refresh can then reload the file incorrectly.
 
 ### Known conflicts
 
@@ -81,7 +150,7 @@ Aliases are not ignored by default: an alias declared in `tsconfig.json` is reso
 pnpm test
 ```
 
-Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), `import/order`, `import/no-unresolved`, JSX indentation, `react/display-name`, React Hooks, and the effective severities of inherited rules.
+Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), the TypeScript native overrides and overloads, `no-require-imports` with `allow`, `import/order`, `import/no-unresolved` (including the `@/` alias), JSX indentation, `react/display-name`, React Hooks, the opt-in React Refresh preset, and the effective severities of inherited rules.
 
 ## Automated dependency updates 🔄
 We use Dependabot to keep dependencies and GitHub Actions up to date. Dependabot opens weekly pull requests with suggested upgrades so you can review and merge them.

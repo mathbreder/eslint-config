@@ -42,7 +42,7 @@ export const baseConfig = defineConfig([
   ]),
   {
     name: 'eslint-base',
-    files: ['**/*.{js,jsx,ts,tsx}'],
+    files: ['**/*.{js,jsx,ts,tsx,mts,cts}'],
     plugins: {
       '@typescript-eslint': tseslint.plugin,
       '@stylistic': stylistic,
@@ -184,6 +184,23 @@ export const baseConfig = defineConfig([
 
       // Require descriptions for eslint directive comments
       'eslint-comments/require-description': ['error', { 'ignore': [] }],
+    },
+  },
+  {
+    name: 'eslint-typescript',
+    files: ['**/*.{ts,tsx,mts,cts}'],
+    rules: {
+      // Replaced by TypeScript checks: the compiler handles declarations, types and overloads
+      'no-dupe-class-members': 'off',
+      'no-redeclare': 'off',
+      'no-undef': 'off',
+      'no-array-constructor': 'off',
+      'no-unused-expressions': 'off',
+
+      '@typescript-eslint/no-dupe-class-members': 'error',
+      '@typescript-eslint/adjacent-overload-signatures': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'warn',
+      '@typescript-eslint/no-require-imports': 'error',
     },
   },
   {

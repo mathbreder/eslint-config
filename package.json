@@ -7,12 +7,22 @@
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/index.d.mts",
+        "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       },
       "require": {
-        "types": "./dist/index.d.ts",
+        "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
+      }
+    },
+    "./react-refresh-vite": {
+      "import": {
+        "types": "./dist/eslint-configs/react-refresh-vite.d.ts",
+        "default": "./dist/eslint-configs/react-refresh-vite.js"
+      },
+      "require": {
+        "types": "./dist/eslint-configs/react-refresh-vite.d.cts",
+        "default": "./dist/eslint-configs/react-refresh-vite.cjs"
       }
     }
   },
@@ -52,12 +62,16 @@
     "eslint-plugin-promise": "^7.2.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
     "globals": "^17.3.0",
     "prettier": "^3.0.0",
     "prettier-plugin-tailwindcss": "^0.5.14",
     "typescript": ">=4"
   },
   "peerDependenciesMeta": {
+    "eslint-plugin-react-refresh": {
+      "optional": true
+    },
     "typescript": {
       "optional": true
     }
@@ -85,6 +99,7 @@
     "eslint-plugin-promise": "^7.2.1",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.7",
     "fast-glob": "^3.3.3",
     "globals": "^17.3.0",
     "prettier": "^3.0.0",

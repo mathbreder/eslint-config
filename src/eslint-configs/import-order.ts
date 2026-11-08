@@ -48,7 +48,7 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
   return [
     {
       name: 'eslint-import-resolver',
-      files: ['**/*.{js,jsx,ts,tsx}'],
+      files: ['**/*.{js,jsx,ts,tsx,mts,cts}'],
       plugins: {
         import: importPlugin,
       },
