@@ -4,6 +4,17 @@
   "private": false,
   "description": "ESLint configuration used by mathbreder.",
   "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "exports": {
     ".": {
       "import": {
@@ -36,7 +47,8 @@
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "pretest": "pnpm run build",
-    "test": "node --test \"tests/**/*.test.mjs\""
+    "test": "node --test \"tests/**/*.test.mjs\"",
+    "test:consumers": "node tests/consumers/run.mjs"
   },
   "license": "MIT",
   "repository": {
@@ -66,7 +78,7 @@
     "globals": "^17.3.0",
     "prettier": "^3.0.0",
     "prettier-plugin-tailwindcss": "^0.5.14",
-    "typescript": ">=4"
+    "typescript": ">=4.8.4 <6.0.0"
   },
   "peerDependenciesMeta": {
     "eslint-plugin-react-refresh": {

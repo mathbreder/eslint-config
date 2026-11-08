@@ -31,7 +31,6 @@ export const reactNextConfig = defineConfig([
     },
     rules: {
       // React specific rules
-      'no-alert': 'warn',
       'react/checked-requires-onchange-or-readonly': [ 'error' ],
       'react/display-name': [
         'warn',
@@ -83,6 +82,13 @@ export const reactNextConfig = defineConfig([
       'react/forbid-dom-props': [ 'error', { 'forbid': [ 'style' ] } ],
 
       'react-hooks/static-components': 'off',
+    },
+  },
+  {
+    name: 'react-frontend-alerts',
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    rules: {
+      'no-alert': 'warn',
     },
   },
   {

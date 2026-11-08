@@ -1,23 +1,28 @@
 import { defineConfig as defaultDefineConfig, type Config } from 'eslint/config';
 
-const cleanPlugins = (configs: Config[]): Config[] => {
-  const pluginsUsed: string[] = [];
-  for (const cfg of configs) {
-    if (cfg.plugins) {
-      for (const pluginName of Object.keys(cfg.plugins)) {
-        if (!pluginsUsed.includes(pluginName)) {
-          pluginsUsed.push(pluginName);
-        } else {
-          // Remove duplicate plugin
-          delete cfg.plugins[pluginName];
-        }
+const assertNoPluginCollisions = (configs: Config[]): void => {
+  const registered = new Map<string, { plugin: unknown; configName: string }>();
+  for (const [index, cfg] of configs.entries()) {
+    const configName = cfg.name ?? `bloco ${index + 1} (sem nome)`;
+    for (const [pluginName, plugin] of Object.entries(cfg.plugins ?? {})) {
+      const previous = registered.get(pluginName);
+      if (!previous) {
+        registered.set(pluginName, { plugin, configName });
+        continue;
+      }
+      if (previous.plugin !== plugin) {
+        throw new Error(
+          `Plugin "${pluginName}" foi registrado com implementações diferentes em "${previous.configName}" e "${configName}". `
+          + 'Use apenas um desses presets no mesmo eslint.config; para React e Expo no mesmo monorepo, '
+          + 'crie um eslint.config por projeto.',
+        );
       }
     }
   }
-  return configs;
 };
 
 export const defineConfig = (...args: unknown[]): Config[] => {
   const configs = defaultDefineConfig(...args) as Config[];
-  return cleanPlugins(configs);
+  assertNoPluginCollisions(configs);
+  return configs;
 };

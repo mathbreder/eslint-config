@@ -7,12 +7,34 @@
 
 ## Setup
 
-Requires ESLint 9.35 or newer (flat config). Version 9.35 is the minimum because of the `preserve-caught-error` rule. The package exports `eslintConfigs` (presets) and `getEslintImportConfig` (import rules).
+### Requirements
 
-Install the package together with the peer dependencies listed in its `package.json`:
+- Node.js `^18.18.0 || ^20.9.0 || >=21.1.0` (declared in `engines`). CI runs Node 20 and 22.
+- ESLint 9.35 or newer, flat config only. 9.35 is the minimum because of the `preserve-caught-error` rule.
+- TypeScript `>=4.8.4 <6.0.0` when you use TypeScript. This is the range supported by `typescript-eslint` 8.
+- `eslint-plugin-react-refresh` only when you use `viteReactRefreshConfig`.
+
+### Installation
+
+Install the package together with its required peer dependencies (the ones listed in `package.json` without `optional`):
+
 ```
 pnpm add -D @mathbreder/eslint-config
 ```
+
+The published package contains only `dist/`, `README.md`, `LICENSE` and `package.json`. Both ESM and CommonJS entries are available:
+
+```js
+// ESM
+import { eslintConfigs, getEslintImportConfig } from '@mathbreder/eslint-config';
+```
+
+```js
+// CommonJS
+const { eslintConfigs, getEslintImportConfig } = require('@mathbreder/eslint-config');
+```
+
+The package exports `eslintConfigs` (presets) and `getEslintImportConfig` (import rules). Type definitions are provided for both entries.
 
 Create `eslint.config.mjs` in the project:
 ```js
@@ -35,11 +57,58 @@ Presets available in `eslintConfigs`:
 
 - `baseConfig`: TypeScript, stylistic and perfectionist rules, plus general ESLint rules.
 - `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects.
-- `expoConfig`: Expo defaults. It registers its own `react-hooks` plugin, so do not combine it with `reactNextConfig` in the same config array.
+- `expoConfig`: Expo defaults. It registers its own `react-hooks` plugin (version 5, from `eslint-config-expo`), while `reactNextConfig` uses `react-hooks` version 7. The two cannot share one config array; see [React and Expo in one monorepo](#react-and-expo-in-one-monorepo).
+- `typeCheckedConfig`: opt-in rules that need type information. See [Type-checked rules](#type-checked-rules-opt-in).
 
 Opt-in preset, not included in `eslintConfigs`:
 
 - `viteReactRefreshConfig`, from `@mathbreder/eslint-config/react-refresh-vite`: see [React Refresh for Vite](#react-refresh-for-vite).
+
+### Composition and plugin collisions
+
+`eslintConfigs.defineConfig` (the same function as `eslint/config`'s `defineConfig`, plus one check) does not remove or replace plugins:
+
+- Using the same plugin object in several presets is fine. The presets are not modified.
+- Registering a plugin name twice with different implementations throws when you call `defineConfig`, and the message names both blocks, for example `Plugin "react-hooks" foi registrado com implementações diferentes em "bloco 2 (sem nome)" e "bloco 3 (sem nome)"`.
+
+Previous versions removed the second registration silently, which could apply rules from a different plugin version. Compositions that worked before still work; the incompatible ones now fail explicitly.
+
+### React and Expo in one monorepo
+
+`reactNextConfig` and `expoConfig` cannot be combined in one config array, and file scopes do not change that: ESLint registers plugin names for the whole array, so `files` patterns cannot split the two `react-hooks` versions. Use one `eslint.config` per project and run ESLint from each project directory, so ESLint loads the nearest config:
+
+```
+apps/
+  web/
+    eslint.config.mjs   # baseConfig + reactNextConfig
+    src/
+  mobile/
+    eslint.config.mjs   # baseConfig + expoConfig
+    src/
+packages/
+  shared/
+    eslint.config.mjs   # baseConfig only
+    src/
+```
+
+```json
+{
+  "scripts": {
+    "lint": "pnpm -r --parallel run lint"
+  }
+}
+```
+
+Each package defines its own `"lint": "eslint ."` script. Running `eslint` from the monorepo root uses the root config, so put the root config on the shared base only, or do not lint the root with React or Expo presets.
+
+### File types
+
+`baseConfig` covers `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts` and `.cts`:
+
+- `.cjs` is parsed as CommonJS (`sourceType: 'commonjs'`). `require()`, `module` and `exports` are available globals.
+- `.mjs` and `.js` are parsed as modules.
+- TypeScript-only rules apply only to `.ts`, `.tsx`, `.mts` and `.cts`. They are not applied to JavaScript files.
+- Known limitation: the TypeScript parser used for every file accepts `import` syntax in `.cjs` files without reporting it.
 
 ### `getEslintImportConfig(options?)`
 
@@ -70,7 +139,7 @@ Aliases are not ignored by default: an alias declared in `tsconfig.json` is reso
 - `prefer-rest-params` and `prefer-spread` are enabled.
 - Quality rules, all `warn` with default options unless noted: `max-depth` (reports more than 4 nesting levels), `max-params` (max 5 parameters), `no-else-return`, `no-nested-ternary`, `no-useless-return`, `object-shorthand` and `prefer-template`. They do not change the limits already set for `max-lines-per-function` and `complexity`.
 - `@stylistic/no-extra-semi` (error) rejects duplicated semicolons such as `const valor = 10;;`. It works with `@stylistic/semi`: applying the automatic fix leaves no remaining message from either rule.
-- `no-alert` (warn) is enabled only by the React/Next preset, for `.jsx` and `.tsx` files. It is not part of `baseConfig`, so Node.js projects and libraries are not affected. `expoConfig` is not changed.
+- `no-alert` (warn) is enabled only by the React/Next preset, for `.js`, `.jsx`, `.ts` and `.tsx` files. It is not part of `baseConfig`, so Node.js projects and libraries are not affected. `expoConfig` is not changed, so Expo projects that want the rule must add it themselves.
 - `curly` is not enabled, so both `if (ativo) executar();` and `if (ativo) { executar(); }` are accepted. `@stylistic/brace-style` still controls how existing braces are formatted.
 - `@stylistic/no-multiple-empty-lines` allows one empty line between blocks and one at the end of the file, and forbids empty lines at the start of the file.
 - `no-unassigned-vars`, `no-useless-assignment` and `preserve-caught-error` are enabled as `error` with default options. `preserve-caught-error` expects the original error in `cause`:
@@ -218,6 +287,8 @@ Components exported by a file are accepted. Exporting a helper function or a non
 
 - `export default () => <div />` triggers `react/display-name` (warn). The config sets `react/function-component-definition` to `unnamedComponents: 'arrow-function'`, so anonymous arrow components are not reported as errors.
 - Malformed JSX indentation is reported by both `@stylistic/indent` and `react/jsx-indent`, so the same error appears twice. Both rules expect the same indentation, so there is no contradiction. This duplication is accepted.
+- The main entry also exports the tsup helpers (`fixBuildImportsPlugin` and `overrideSwcPlugin`), whose type declarations reference `esbuild`. TypeScript consumers that do not have `esbuild` installed see a `Cannot find module 'esbuild'` error unless they use `skipLibCheck: true`. The JavaScript output does not import `esbuild`, so runtime use is not affected. Moving the tsup helpers to their own subpath would remove this, but it changes the import path, so it is left as a separate decision.
+- `@swc/core` and `eslint-config-expo` are required peer dependencies because the main entry loads every preset and the tsup helper. Projects that do not use Expo still install `eslint-config-expo`.
 
 ## Tests
 
@@ -225,7 +296,32 @@ Components exported by a file are accepted. Exporting a helper function or a non
 pnpm test
 ```
 
-Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), the TypeScript native overrides and overloads, `no-require-imports` with `allow`, `import/order`, `import/no-unresolved` (including the `@/` alias), JSX indentation, `react/display-name`, React Hooks, the opt-in React Refresh preset, the type-checked preset (`no-floating-promises` on real files, across two `tsconfig.json` projects, and an out-of-project file), the quality rules and `no-alert` by preset, and the effective severities of inherited rules.
+Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), the TypeScript native overrides and overloads, `no-require-imports` with `allow`, `import/order`, `import/no-unresolved` (including the `@/` alias), JSX indentation, `react/display-name`, React Hooks, the opt-in React Refresh preset, the type-checked preset (`no-floating-promises` on real files, across two `tsconfig.json` projects, and an out-of-project file), the quality rules and `no-alert` by preset, plugin composition (identity reuse, collisions, no mutation of presets), `.mjs` and `.cjs` handling, a React and Expo monorepo with one config per project, and the effective severities of inherited rules. The consumer tests are a separate command, described below.
+
+## Consumer tests
+
+`pnpm run test:consumers` packs the package, installs the tarball and its required peer dependencies in temporary directories, and runs one verification per consumer under `tests/consumers/`:
+
+| Consumer | Checks |
+|---|---|
+| `node-esm` | `baseConfig`, `getEslintImportConfig`, and linting `.js` and `.mjs` |
+| `node-cjs` | `require()` of the main entry and of `react-refresh-vite`, and linting `.cjs` |
+| `typescript` | `typeCheckedConfig`, alias resolution, and the public type exports (`tsc`) |
+| `react` | `reactNextConfig`, rules of hooks, and `no-alert` for `.js` and `.tsx` |
+| `expo` | `expoConfig`, rules of hooks, and no `no-alert` |
+| `vite-react` | `viteReactRefreshConfig` imported from its subpath |
+| `monorepo` | React and Expo projects in one repository, each with its own config |
+
+These projects are independent fixtures that behave like consumers. They do not replace validation in real production applications.
+
+## Publishing and CI
+
+The workflow `.github/workflows/npm-publish.yml` uses pnpm with `pnpm install --frozen-lockfile`:
+
+- **Pull requests, and pushes to `main`:** the `verify` job runs on Node 20 and 22. It builds, runs lint, the unit tests, the consumer tests, and `pnpm publish --dry-run`.
+- **Release created:** the `publish-npm` job runs only after `verify` succeeds, and publishes with `pnpm publish` using the `npm_token` repository secret.
+
+The package is published with `publishConfig.access: public`, because it is scoped (`@mathbreder/...`). Before a release, run `pnpm run build && pnpm pack` and inspect the tarball, or run `pnpm run test:consumers`.
 
 ## Automated dependency updates 🔄
 We use Dependabot to keep dependencies and GitHub Actions up to date. Dependabot opens weekly pull requests with suggested upgrades so you can review and merge them.

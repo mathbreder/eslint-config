@@ -42,7 +42,7 @@ export const baseConfig = defineConfig([
   ]),
   {
     name: 'eslint-base',
-    files: ['**/*.{js,jsx,ts,tsx,mts,cts}'],
+    files: ['**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'],
     plugins: {
       '@typescript-eslint': tseslint.plugin,
       '@stylistic': stylistic,
@@ -200,6 +200,16 @@ export const baseConfig = defineConfig([
 
       // Require descriptions for eslint directive comments
       'eslint-comments/require-description': ['error', { 'ignore': [] }],
+    },
+  },
+  {
+    name: 'eslint-commonjs',
+    files: ['**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      parserOptions: {
+        sourceType: 'script',
+      },
     },
   },
   {

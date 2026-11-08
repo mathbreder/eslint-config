@@ -2,8 +2,8 @@ import fs from 'fs';
 import path from 'path';
 
 import swc, { type JscConfig, type JscTarget } from '@swc/core';
+import type { BuildOptions, Plugin as EsbuildPlugin, PluginBuild, TsconfigRaw } from 'esbuild';
 
-import { type BuildOptions, type Plugin as EsbuildPlugin, type PluginBuild, type TsconfigRaw } from 'esbuild';
 import type { TsupPlugin } from '../types/tsup-plugin';
 
 export type OverrideSwcOptions = BuildOptions & {
@@ -68,8 +68,7 @@ const getCode = (swcOutput: swc.Output, sourcePath: string) => {
       (source) => path.isAbsolute(source)
         ? path.relative(path.dirname(sourcePath), source)
         : source);
-    returnData.contents += '//# sourceMappingURL=data:application/json;base64,'
-      + Buffer.from(JSON.stringify(map)).toString('base64');
+    returnData.contents += `//# sourceMappingURL=data:application/json;base64,${Buffer.from(JSON.stringify(map)).toString('base64')}`;
   }
   return returnData;
 };
