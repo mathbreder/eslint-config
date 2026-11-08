@@ -9,10 +9,28 @@
 
 ### Requirements
 
-- Node.js `^18.18.0 || ^20.9.0 || >=21.1.0` (declared in `engines`). CI runs Node 20 and 22.
-- ESLint 9.35 or newer, flat config only. 9.35 is the minimum because of the `preserve-caught-error` rule.
-- TypeScript `>=4.8.4 <6.0.0` when you use TypeScript. This is the range supported by `typescript-eslint` 8.
+- Node.js `^22.18.0 || ^24.11.0 || >=26.0.0` (declared in `engines`). CI runs Node 22, 24 and 26. Node 18 and 20 are no longer supported.
+- ESLint 9.35 or newer, flat config only. 9.35 is the minimum because of the `preserve-caught-error` rule. See [Compatibility policy](#compatibility-policy) for the ESLint 9 line.
+- TypeScript `>=4.8.4 <6.1.0` when you use TypeScript. This is the range supported by `typescript-eslint` 8.72.
+- `eslint-config-expo` `^58.0.4` when you use `expoConfig`. Expo 10 is no longer supported by this package version.
+- `@next/eslint-plugin-next` `^16.4.5` when you use `nextConfig`.
+
+Recommended for development of this repository: Node.js 24, pnpm 10.28, ESLint 9.39.5, TypeScript 6.0.3, `typescript-eslint` 8.72.1 and `eslint-config-expo` 58.0.4.
 - `eslint-plugin-react-refresh` only when you use `viteReactRefreshConfig`.
+- `@next/eslint-plugin-next` only when you use `nextConfig` (the package pins 16.0.1, the version matching Next.js 16.0.1).
+
+### Compatibility policy
+
+- **ESLint 9.39.5 (transitional):** the npm registry marks this version as deprecated, with the notice that it is no longer supported. It is kept on purpose: ESLint 10.14 is available, but `eslint-plugin-react@7.37.5`, `eslint-plugin-jsx-a11y@6.10.2` and `eslint-plugin-import@2.32.0` do not declare ESLint 10 support. The migration to ESLint 10 is pending until those plugins declare it.
+- **TypeScript:** development uses TypeScript 6.0.3. The supported range for consumers is `>=4.8.4 <6.1.0`; TypeScript 7 is not supported. `tsconfig.json` sets `ignoreDeprecations: "6.0"` because the declaration bundler still emits `baseUrl`, which TypeScript 7 removes. Revisit this before a TypeScript 7 upgrade.
+- **Expo:** `expoConfig` follows `eslint-config-expo` 58, which uses `react-hooks` 7 like the React preset. Projects on Expo 10 must stay on the previous package version. Combining `expoConfig` with `getEslintImportConfig` in one config array fails with a clear message, because Expo registers its own `eslint-plugin-import` instance; see [Known conflicts](#known-conflicts).
+- **Next.js:** `nextConfig` follows the `recommended` set of `@next/eslint-plugin-next` 16.4.5. That version adds `no-location-assign-relative-destination` as `warn`, which is inherited and reported in the Next.js section.
+- **Node.js:** unit tests were run on Node 22.21, 24.22 and 26.13. CI runs 22, 24 and 26. `tsup` 9 requires Node `^22.18`.
+- **Behavior changes in this update:**
+  - `react-hooks/component-hook-factories` is deprecated in `eslint-plugin-react-hooks` 7.1.1 and no longer part of `recommended`. It is not re-added.
+  - `expoConfig` now includes the `react-hooks` 7 rules, and turns `react-hooks/static-components` off in `.jsx` and `.tsx` files, as the React preset does.
+  - No approved severity or option changed in `baseConfig`, `reactNextConfig`, `typeCheckedConfig`, `viteReactRefreshConfig` or `getEslintImportConfig`. This was checked by comparing the effective configuration with the previous commit.
+- **Peer dependencies not used by the source:** `eslint-config-next`, `eslint-plugin-n`, `eslint-plugin-promise`, `eslint-plugin-prettier`, `eslint-config-prettier` and `prettier-plugin-tailwindcss` are declared but not imported. They are kept for compatibility and are candidates for removal in a future major version.
 
 ### Installation
 
@@ -57,8 +75,9 @@ Presets available in `eslintConfigs`:
 
 - `baseConfig`: TypeScript, stylistic and perfectionist rules, plus general ESLint rules.
 - `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects.
-- `expoConfig`: Expo defaults. It registers its own `react-hooks` plugin (version 5, from `eslint-config-expo`), while `reactNextConfig` uses `react-hooks` version 7. The two cannot share one config array; see [React and Expo in one monorepo](#react-and-expo-in-one-monorepo).
+- `expoConfig`: Expo defaults, from `eslint-config-expo` 58. It uses `react-hooks` 7 like `reactNextConfig`, so both can be combined in one config array in an installation where they resolve to the same plugin instance. The package checks this when you call `defineConfig` and fails with a clear message otherwise. See [React and Expo in one monorepo](#react-and-expo-in-one-monorepo).
 - `typeCheckedConfig`: opt-in rules that need type information. See [Type-checked rules](#type-checked-rules-opt-in).
+- `nextConfig`: opt-in Next.js rules, from `@mathbreder/eslint-config/next`. See [Next.js](#nextjs).
 
 Opt-in preset, not included in `eslintConfigs`:
 
@@ -75,7 +94,7 @@ Previous versions removed the second registration silently, which could apply ru
 
 ### React and Expo in one monorepo
 
-`reactNextConfig` and `expoConfig` cannot be combined in one config array, and file scopes do not change that: ESLint registers plugin names for the whole array, so `files` patterns cannot split the two `react-hooks` versions. Use one `eslint.config` per project and run ESLint from each project directory, so ESLint loads the nearest config:
+`reactNextConfig` and `expoConfig` can share one config array when both resolve to the same `react-hooks` instance, which is the case with `eslint-config-expo` 58. File scopes do not split plugin names, though: ESLint registers names for the whole array, so two different implementations of the same plugin cannot coexist in one array. When a project needs different implementations, or Expo must be combined with `getEslintImportConfig` (Expo's own `eslint-plugin-import` is a separate instance; see [Known conflicts](#known-conflicts)), use one `eslint.config` per project and run ESLint from each project directory, so ESLint loads the nearest config:
 
 ```
 apps/
@@ -274,6 +293,68 @@ export default eslintConfigs.defineConfig([
 
 Components exported by a file are accepted. Exporting a helper function or a non-primitive object from a component file triggers the warning, because Fast Refresh can then reload the file incorrectly.
 
+### Next.js
+
+`nextConfig`, from `@mathbreder/eslint-config/next`, enables the 21 rules of `@next/eslint-plugin-next` 16.0.1. It is not part of `baseConfig`, `reactNextConfig` or `expoConfig`: enabling `reactNextConfig` alone does not turn on any Next.js rule. The main entry does not load the Next plugin, so projects that do not use Next.js do not need it.
+
+Install the plugin in the project that uses Next.js:
+
+```
+pnpm add -D @next/eslint-plugin-next
+```
+
+Compose it with React and the import rules:
+
+```js
+import { eslintConfigs, getEslintImportConfig } from '@mathbreder/eslint-config';
+import { nextConfig } from '@mathbreder/eslint-config/next';
+
+export default eslintConfigs.defineConfig([
+  ...eslintConfigs.baseConfig,
+  ...eslintConfigs.reactNextConfig,
+  ...nextConfig,
+  ...getEslintImportConfig(),
+]);
+```
+
+The preset uses the plugin's `recommended` configuration, not `core-web-vitals`, with one change:
+
+- `error` (7): `inline-script-id`, `no-assign-module-variable`, `no-document-import-in-page`, `no-duplicate-head`, `no-head-import-in-document`, `no-html-link-for-pages` (raised from `warn` so internal navigation uses `next/link`), `no-script-component-in-head`.
+- `warn` (14): `google-font-display`, `google-font-preconnect`, `next-script-for-ga`, `no-async-client-component`, `no-before-interactive-script-outside-document`, `no-css-tags`, `no-head-element`, `no-img-element`, `no-page-custom-font`, `no-styled-jsx-in-document`, `no-sync-scripts`, `no-title-in-document-head`, `no-typos`, `no-unwanted-polyfillio`.
+
+`core-web-vitals` also raises `no-sync-scripts` to `error`. That change is not part of this preset, so `no-sync-scripts` stays a warning.
+
+Disable a rule in one project when you need to, for example a deliberate `<img>`:
+
+```js
+export default eslintConfigs.defineConfig([
+  ...eslintConfigs.baseConfig,
+  ...eslintConfigs.reactNextConfig,
+  ...nextConfig,
+  { rules: { '@next/next/no-img-element': 'off' } },
+]);
+```
+
+Some rules check a specific structure, so they only report what they are written for:
+
+- `no-duplicate-head` checks a class-based `_document` (`class X extends Document`), not a function component.
+- `no-assign-module-variable` checks declarations (`const module = ...`), not assignments (`module = ...`).
+
+#### Next.js in a monorepo
+
+Set `settings.next.rootDir` to the Next.js application directory. The plugin uses it to find `pages/` and `app/`:
+
+```js
+export default eslintConfigs.defineConfig([
+  ...eslintConfigs.baseConfig,
+  ...eslintConfigs.reactNextConfig,
+  ...nextConfig,
+  { settings: { next: { rootDir: 'apps/web' } } },
+]);
+```
+
+The path is resolved from the directory where ESLint runs (`process.cwd()`), not from the config file's location. Run ESLint from the monorepo root so `apps/web` resolves, or use one `eslint.config` per application as described in [React and Expo in one monorepo](#react-and-expo-in-one-monorepo).
+
 ### Rules intentionally not enabled
 
 - Retired TypeScript rules, not to be added: `@typescript-eslint/ban-types` (use `no-empty-object-type`, `no-unsafe-function-type` and `no-wrapper-object-types`, plus `no-restricted-types` when needed), `@typescript-eslint/indent` (use `@stylistic/indent`) and `@typescript-eslint/no-var-requires` (use `no-require-imports`). `no-empty-interface` is also not enabled, because `no-empty-object-type` replaces it.
@@ -287,6 +368,7 @@ Components exported by a file are accepted. Exporting a helper function or a non
 
 - `export default () => <div />` triggers `react/display-name` (warn). The config sets `react/function-component-definition` to `unnamedComponents: 'arrow-function'`, so anonymous arrow components are not reported as errors.
 - Malformed JSX indentation is reported by both `@stylistic/indent` and `react/jsx-indent`, so the same error appears twice. Both rules expect the same indentation, so there is no contradiction. This duplication is accepted.
+- `expoConfig` combined with `getEslintImportConfig` fails with `Plugin "import" foi registrado com implementações diferentes`. The cause is the lockfile: `eslint-plugin-import@2.32.0` appears as three pnpm instances, because `eslint-config-expo` 58 depends on `eslint-import-resolver-typescript` ^3.6, while this package uses 4.x, so the peer sets differ. This already happened before this update. The package does not force deduplication, since that could break other peers. Until it is resolved, Expo projects that need import rules should use a separate `eslint.config` with the Expo preset, or drop `getEslintImportConfig` for that project.
 - The main entry also exports the tsup helpers (`fixBuildImportsPlugin` and `overrideSwcPlugin`), whose type declarations reference `esbuild`. TypeScript consumers that do not have `esbuild` installed see a `Cannot find module 'esbuild'` error unless they use `skipLibCheck: true`. The JavaScript output does not import `esbuild`, so runtime use is not affected. Moving the tsup helpers to their own subpath would remove this, but it changes the import path, so it is left as a separate decision.
 - `@swc/core` and `eslint-config-expo` are required peer dependencies because the main entry loads every preset and the tsup helper. Projects that do not use Expo still install `eslint-config-expo`.
 
@@ -311,6 +393,7 @@ Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint A
 | `expo` | `expoConfig`, rules of hooks, and no `no-alert` |
 | `vite-react` | `viteReactRefreshConfig` imported from its subpath |
 | `monorepo` | React and Expo projects in one repository, each with its own config |
+| `next` | `nextConfig` from its subpath (ESM and CJS), with `no-html-link-for-pages` and `no-img-element` on a Next.js app |
 
 These projects are independent fixtures that behave like consumers. They do not replace validation in real production applications.
 
@@ -318,7 +401,7 @@ These projects are independent fixtures that behave like consumers. They do not 
 
 The workflow `.github/workflows/npm-publish.yml` uses pnpm with `pnpm install --frozen-lockfile`:
 
-- **Pull requests, and pushes to `main`:** the `verify` job runs on Node 20 and 22. It builds, runs lint, the unit tests, the consumer tests, and `pnpm publish --dry-run`.
+- **Pull requests, and pushes to `main`:** the `verify` job runs on Node 22, 24 and 26. It builds, runs lint, the unit tests, the consumer tests, and `pnpm publish --dry-run`.
 - **Release created:** the `publish-npm` job runs only after `verify` succeeds, and publishes with `pnpm publish` using the `npm_token` repository secret.
 
 The package is published with `publishConfig.access: public`, because it is scoped (`@mathbreder/...`). Before a release, run `pnpm run build && pnpm pack` and inspect the tarball, or run `pnpm run test:consumers`.

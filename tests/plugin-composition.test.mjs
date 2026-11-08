@@ -43,12 +43,17 @@ test('o mesmo objeto de plugin pode ser reutilizado em presets diferentes', () =
   assert.ok(registrations.every((cfg) => cfg.plugins['@typescript-eslint'] === tseslintFromBase));
 });
 
+const impostorHooksBlock = () => ({
+  name: 'bloco-falso',
+  plugins: { 'react-hooks': { ...reactNextConfig.find((cfg) => cfg.plugins?.['react-hooks']).plugins['react-hooks'] } },
+});
+
 test('plugins diferentes com o mesmo nome não são substituídos silenciosamente', () => {
   assert.throws(
-    () => defineConfig([...baseConfig, ...reactNextConfig, ...expoConfig]),
+    () => defineConfig([...baseConfig, ...reactNextConfig, impostorHooksBlock()]),
     (error) => {
       assert.match(error.message, /Plugin "react-hooks"/);
-      assert.match(error.message, /em ".+" e ".+"/);
+      assert.match(error.message, /em ".+" e "bloco-falso"/);
       return true;
     },
   );
@@ -56,8 +61,8 @@ test('plugins diferentes com o mesmo nome não são substituídos silenciosament
 
 test('a mensagem de colisão indica os dois blocos envolvidos', () => {
   assert.throws(
-    () => defineConfig([...reactNextConfig, ...expoConfig]),
-    /registrado com implementações diferentes em ".*" e ".*"/,
+    () => defineConfig([...reactNextConfig, impostorHooksBlock()]),
+    /registrado com implementações diferentes em ".*" e "bloco-falso"/,
   );
 });
 

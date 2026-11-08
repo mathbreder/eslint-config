@@ -4,7 +4,7 @@ import { test } from 'node:test';
 
 import { ESLint } from 'eslint';
 
-import { eslintConfigs } from '../dist/index.js';
+import { eslintConfigs, getEslintImportConfig } from '../dist/index.js';
 import { root } from './helpers.mjs';
 
 const monorepo = path.join(root, 'tests/fixtures/monorepo');
@@ -24,9 +24,9 @@ test('apps/web usa a config React do próprio projeto', async () => {
   assert.equal(config.rules['react-hooks/rules-of-hooks']?.[0], 2);
 });
 
-test('apps/mobile usa o Expo e mantém a versão 5 do react-hooks do Expo', async () => {
+test('apps/mobile usa o Expo 58, que aplica react-hooks 7 como o preset React', async () => {
   const config = await effectiveOf(mobile);
-  assert.equal(config.rules['react-hooks/set-state-in-effect'], undefined);
+  assert.equal(config.rules['react-hooks/set-state-in-effect']?.[0], 2);
   assert.equal(config.rules['react-hooks/rules-of-hooks']?.[0], 2);
 });
 
@@ -45,15 +45,37 @@ test('a regra de hooks é executada em apps/web e em apps/mobile', async () => {
   }
 });
 
-test('separar presets por escopo de arquivo no mesmo array não resolve o conflito de plugin', () => {
+test('escopos de arquivo não permitem duas instâncias diferentes do mesmo plugin no mesmo array', () => {
   const webHooks = eslintConfigs.reactNextConfig.find((cfg) => cfg.plugins?.['react-hooks'])?.plugins['react-hooks'];
-  const expoHooks = eslintConfigs.expoConfig.find((cfg) => cfg.plugins?.['react-hooks'])?.plugins['react-hooks'];
-  assert.ok(webHooks && expoHooks && webHooks !== expoHooks);
+  const impostorHooks = { ...webHooks };
+  assert.ok(webHooks && impostorHooks !== webHooks);
   assert.throws(
     () => eslintConfigs.defineConfig([
       { files: ['apps/web/**'], plugins: { 'react-hooks': webHooks } },
-      { files: ['apps/mobile/**'], plugins: { 'react-hooks': expoHooks } },
+      { files: ['apps/mobile/**'], plugins: { 'react-hooks': impostorHooks } },
     ]),
     /Plugin "react-hooks" foi registrado com implementações diferentes/,
+  );
+});
+
+test('react e Expo 58 compõem nesta instalação porque compartilham a instância de react-hooks', () => {
+  const reactHooks = eslintConfigs.reactNextConfig.find((cfg) => cfg.plugins?.['react-hooks'])?.plugins['react-hooks'];
+  const expoHooks = eslintConfigs.expoConfig.find((cfg) => cfg.plugins?.['react-hooks'])?.plugins['react-hooks'];
+  assert.equal(reactHooks, expoHooks);
+  assert.doesNotThrow(() => eslintConfigs.defineConfig([
+    ...eslintConfigs.baseConfig,
+    ...eslintConfigs.reactNextConfig,
+    ...eslintConfigs.expoConfig,
+  ]));
+});
+
+test('expoConfig com getEslintImportConfig colide no plugin import (limitação anterior, também no HEAD)', () => {
+  assert.throws(
+    () => eslintConfigs.defineConfig([
+      ...eslintConfigs.baseConfig,
+      ...eslintConfigs.expoConfig,
+      ...getEslintImportConfig(),
+    ]),
+    /Plugin "import" foi registrado com implementações diferentes/,
   );
 });

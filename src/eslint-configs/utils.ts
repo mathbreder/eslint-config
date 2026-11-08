@@ -22,7 +22,9 @@ const assertNoPluginCollisions = (configs: Config[]): void => {
 };
 
 export const defineConfig = (...args: unknown[]): Config[] => {
-  const configs = defaultDefineConfig(...args) as Config[];
+  const configs = defaultDefineConfig(
+    ...(args as Parameters<typeof defaultDefineConfig>),
+  ) as Config[];
   assertNoPluginCollisions(configs);
   return configs;
 };

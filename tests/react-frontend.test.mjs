@@ -50,7 +50,6 @@ const HOOKS_EXPECTED = {
   'react-hooks/set-state-in-render': 2,
   'react-hooks/unsupported-syntax': 1,
   'react-hooks/use-memo': 2,
-  'react-hooks/component-hook-factories': 2,
   'react-hooks/rules-of-hooks': 2,
   'react-hooks/exhaustive-deps': 1,
 };
@@ -63,6 +62,10 @@ for (const file of ['case.jsx', 'case.tsx']) {
       assert.equal(config.rules[rule]?.[0], severity);
     });
   }
+
+  test(`react-hooks/component-hook-factories não está ativa em ${file} (deprecada na 7.1.1)`, () => {
+    assert.equal(config.rules['react-hooks/component-hook-factories'], undefined);
+  });
 
   test(`react-hooks/static-components segue a decisão anterior (off) em ${file}`, () => {
     assert.equal(config.rules['react-hooks/static-components'][0], 0);

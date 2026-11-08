@@ -17,6 +17,7 @@ const CONSUMERS = [
   { name: 'expo', verify: ['node', 'verify.mjs'] },
   { name: 'vite-react', verify: ['node', 'verify.mjs'], optional: ['eslint-plugin-react-refresh'] },
   { name: 'monorepo', verify: ['node', 'verify.mjs'] },
+  { name: 'next', verify: ['node', 'verify.mjs'], optional: ['@next/eslint-plugin-next'] },
 ];
 
 const run = (command, args, options = {}) => spawnSync(command, args, {

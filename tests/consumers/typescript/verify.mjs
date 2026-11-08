@@ -8,7 +8,7 @@ const tsc = spawnSync(process.execPath, [path.join('node_modules', 'typescript',
   encoding: 'utf8',
 });
 const tscErrors = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((line) => /error TS\d+/.test(line));
-const unexpected = tscErrors.filter((line) => !/Cannot find module 'esbuild'/.test(line));
+const unexpected = tscErrors.filter((line) => !/(Cannot find module|Cannot find module or type declarations for side-effect import of) 'esbuild'/.test(line));
 assert.equal(unexpected.length, 0, `tsc com erros fora do limite conhecido:\n${unexpected.join('\n')}`);
 
 const eslint = new ESLint({ cwd: process.cwd() });

@@ -10,7 +10,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+    "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
   },
   "publishConfig": {
     "access": "public"
@@ -35,6 +35,16 @@
         "types": "./dist/eslint-configs/react-refresh-vite.d.cts",
         "default": "./dist/eslint-configs/react-refresh-vite.cjs"
       }
+    },
+    "./next": {
+      "import": {
+        "types": "./dist/eslint-configs/next.d.ts",
+        "default": "./dist/eslint-configs/next.js"
+      },
+      "require": {
+        "types": "./dist/eslint-configs/next.d.cts",
+        "default": "./dist/eslint-configs/next.cjs"
+      }
     }
   },
   "main": "./dist/index.js",
@@ -56,31 +66,35 @@
   },
   "peerDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
-    "@eslint/js": "^9.39.2",
-    "@stylistic/eslint-plugin": "^5.5.0",
+    "@eslint/js": "^9.39.5",
+    "@next/eslint-plugin-next": "^16.4.5",
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@swc/core": "^1.15.3",
-    "@typescript-eslint/eslint-plugin": "^8.54.0",
-    "@typescript-eslint/parser": "^8.54.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.1",
+    "@typescript-eslint/parser": "^8.72.1",
     "eslint": "^9.35.0",
-    "eslint-config-expo": "~10.0.0",
-    "eslint-config-next": "^16.0.1",
+    "eslint-config-expo": "^58.0.4",
+    "eslint-config-next": "^16.4.5",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-n": "^17.23.2",
-    "eslint-plugin-perfectionist": "^5.4.0",
+    "eslint-plugin-perfectionist": "^5.13.0",
     "eslint-plugin-prettier": "5.5.5",
     "eslint-plugin-promise": "^7.2.1",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
-    "globals": "^17.3.0",
+    "globals": "^17.14.0",
     "prettier": "^3.0.0",
     "prettier-plugin-tailwindcss": "^0.5.14",
-    "typescript": ">=4.8.4 <6.0.0"
+    "typescript": ">=4.8.4 <6.1.0"
   },
   "peerDependenciesMeta": {
+    "@next/eslint-plugin-next": {
+      "optional": true
+    },
     "eslint-plugin-react-refresh": {
       "optional": true
     },
@@ -89,36 +103,37 @@
     }
   },
   "devDependencies": {
-    "@eslint-community/eslint-plugin-eslint-comments": "^4.5.0",
-    "@eslint/js": "^9.39.2",
-    "@stylistic/eslint-plugin": "^5.5.0",
-    "@swc/core": "^1.15.3",
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.8.1",
+    "@eslint/js": "^9.39.5",
+    "@next/eslint-plugin-next": "16.4.5",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "@swc/core": "^1.16.22",
     "@types/eslint-plugin-jsx-a11y": "^6.10.1",
-    "@types/node": "^20.11.0",
-    "@typescript-eslint/eslint-plugin": "^8.54.0",
-    "@typescript-eslint/parser": "^8.54.0",
-    "esbuild": "^0.27.0",
-    "eslint": "^9",
-    "eslint-config-expo": "~10.0.0",
-    "eslint-config-next": "^16.0.1",
+    "@types/node": "^24.19.2",
+    "@typescript-eslint/eslint-plugin": "^8.72.1",
+    "@typescript-eslint/parser": "^8.72.1",
+    "esbuild": "^0.28.2",
+    "eslint": "^9.39.5",
+    "eslint-config-expo": "~58.0.4",
+    "eslint-config-next": "^16.4.5",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-import-resolver-typescript": "^4.4.5",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-n": "^17.23.2",
-    "eslint-plugin-perfectionist": "^5.4.0",
-    "eslint-plugin-prettier": "5.5.5",
-    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-perfectionist": "^5.13.0",
+    "eslint-plugin-prettier": "5.5.7",
+    "eslint-plugin-promise": "^7.3.0",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
     "fast-glob": "^3.3.3",
-    "globals": "^17.3.0",
-    "prettier": "^3.0.0",
-    "prettier-plugin-tailwindcss": "^0.5.14",
-    "rimraf": "^6.1.2",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.46.3"
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "rimraf": "^6.1.4",
+    "tsup": "^9.0.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1"
   }
 }
