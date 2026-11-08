@@ -24,7 +24,9 @@
     "prebuild": "pnpm run clean",
     "build": "tsup",
     "lint": "eslint \"src/**/*.ts\"",
-    "lint:fix": "eslint \"src/**/*.ts\" --fix"
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "pretest": "pnpm run build",
+    "test": "node --test \"tests/**/*.test.mjs\""
   },
   "license": "MIT",
   "repository": {

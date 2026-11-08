@@ -1,14 +1,12 @@
-import path from 'node:path';
-
 import type { Config } from 'eslint/config';
 import importPlugin from 'eslint-plugin-import';
-
-import { getFilename as getFilenameESM } from '../runtime/get-filename';
 
 type Severity = 'error' | 'off' | 'warn' | 0 | 1 | 2;
 type ImportOrderRule = [Severity, Record<string, unknown>];
 
-type PathGroup = { pattern: string; group?: string; position?: 'after' | 'before' };
+export type ImportGroup = 'builtin' | 'external' | 'index' | 'internal' | 'object' | 'parent' | 'sibling' | 'type';
+
+export type PathGroup = { pattern: string; group: ImportGroup; position?: 'after' | 'before' };
 
 const defaultPathGroups: PathGroup[] = [
   {
@@ -16,48 +14,17 @@ const defaultPathGroups: PathGroup[] = [
     group: 'external',
     position: 'before',
   },
-  {
-    pattern: '@web/**',
-    group: 'internal',
-  },
-  {
-    pattern: '@mobile/**',
-    group: 'internal',
-  },
-  {
-    pattern: '@api/**',
-    group: 'internal',
-  },
-  {
-    pattern: '@shared/**',
-    group: 'internal',
-  },
-  {
-    pattern: '@db',
-    group: 'internal',
-  },
 ];
 
 export type GetEslintImportConfigOptions = {
-  project?: string;
+  project?: string | string[];
   pathGroups?: PathGroup[];
+  noUnresolvedIgnore?: string[];
 };
 
 export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Config[] => {
-  const project = opts?.project;
   const extraPathGroups = opts?.pathGroups ?? [];
-
-  // For CJS we `require` the CJS helper; for ESM we use the static import.
-  let __filename: string;
-  if (typeof __filename !== 'undefined') {
-    // CJS runtime
-
-    __filename = require('../runtime/get-filename.cts').getFilename();
-  } else {
-    __filename = getFilenameESM();
-  }
-
-  const tsConfigPath = project || path.join(path.dirname(__filename), 'tsconfig.json');
+  const noUnresolvedIgnore = opts?.noUnresolvedIgnore ?? [];
 
   const importOrderRule: ImportOrderRule = [
     'error',
@@ -67,6 +34,7 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
         ...defaultPathGroups,
         ...extraPathGroups,
       ],
+      pathGroupsExcludedImportTypes: ['builtin'],
       'newlines-between': 'always',
       alphabetize: {
         order: 'asc',
@@ -74,6 +42,8 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
       },
     },
   ];
+
+  const typescriptResolverOptions = opts?.project === undefined ? {} : { project: opts.project };
 
   return [
     {
@@ -84,16 +54,16 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
       },
       settings: {
         'import/resolver': {
-          typescript: {
-            project: tsConfigPath,
-          },
+          typescript: typescriptResolverOptions,
           node: true,
         },
       },
       rules: {
       // Import order & organization
         'import/order': importOrderRule,
-        'import/no-unresolved': 'error',
+        'import/no-unresolved': noUnresolvedIgnore.length > 0
+          ? ['error', { ignore: noUnresolvedIgnore }]
+          : 'error',
         'import/no-cycle': 'warn',
       },
     },

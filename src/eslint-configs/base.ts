@@ -71,16 +71,33 @@ export const baseConfig = defineConfig([
       'no-unused-vars': ['off'],
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'no-debugger': 'error',
-      'max-lines-per-function': ['warn', { max: 50, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['warn', { max: 80, skipBlankLines: true, skipComments: true }],
       'complexity': ['warn', { max: 10 }],
       'max-nested-callbacks': ['warn', { max: 3 }],
       'no-duplicate-imports': 'error',
       'func-style': ['error', 'expression'],
+      'prefer-rest-params': 'error',
+      'prefer-spread': 'error',
+      'no-unsafe-optional-chaining': ['error', { disallowArithmeticOperators: true }],
 
       // Typescript specific rules
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          args: 'all',
+          caughtErrors: 'all',
+          ignoreRestSiblings: true,
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
       '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
       '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-misused-new': 'error',
+      '@typescript-eslint/triple-slash-reference': 'error',
+      '@typescript-eslint/no-extra-non-null-assertion': 'error',
+      '@typescript-eslint/no-wrapper-object-types': 'error',
 
       // Perfectionist rules
       'perfectionist/sort-intersection-types': [
@@ -107,7 +124,22 @@ export const baseConfig = defineConfig([
       '@stylistic/comma-spacing': ['error', { 'before': false, 'after': true }],
       '@stylistic/comma-dangle': ['error', 'always-multiline'],
       '@stylistic/dot-location': ['error', 'property'],
-      '@stylistic/indent': ['error', 2],
+      '@stylistic/indent': [
+        'error',
+        2,
+        {
+          ArrayExpression: 1,
+          ignoredNodes: ['PropertyDefinition'],
+          FunctionDeclaration: {
+            parameters: 'first',
+            body: 1,
+          },
+          FunctionExpression: {
+            parameters: 'first',
+            body: 1,
+          },
+        },
+      ],
       '@stylistic/linebreak-style': ['error', 'unix'],
       '@stylistic/max-len': [
         'error',

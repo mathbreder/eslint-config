@@ -32,8 +32,20 @@ export const reactNextConfig = defineConfig([
     rules: {
       // React specific rules
       'react/checked-requires-onchange-or-readonly': [ 'error' ],
-      'react/display-name': [ 'off' ],
-      'react/function-component-definition': [ 'error', { 'namedComponents': 'arrow-function' } ],
+      'react/display-name': [
+        'warn',
+        {
+          ignoreTranspilerName: false,
+          checkContextObjects: false,
+        },
+      ],
+      'react/function-component-definition': [
+        'error',
+        {
+          namedComponents: 'arrow-function',
+          unnamedComponents: 'arrow-function',
+        },
+      ],
       'react/jsx-boolean-value': [ 'error', 'never', { 'assumeUndefinedIsFalse': true } ],
       'react/jsx-child-element-spacing': [ 'error' ],
       'react/jsx-closing-bracket-location': [ 'error', 'line-aligned' ],
@@ -45,7 +57,13 @@ export const reactNextConfig = defineConfig([
       'react/jsx-first-prop-new-line': [ 'error', 'multiline' ],
       'react/jsx-fragments': [ 'error', 'syntax' ],
       'react/jsx-indent-props': [ 'error', 2 ],
-      'react/jsx-indent': [ 'error', 2 ],
+      'react/jsx-indent': [
+        'error',
+        2,
+        {
+          indentLogicalExpressions: true,
+        },
+      ],
       'react/jsx-key': [
         'error', {
           'checkFragmentShorthand': true,
@@ -64,20 +82,6 @@ export const reactNextConfig = defineConfig([
       'react/forbid-dom-props': [ 'error', { 'forbid': [ 'style' ] } ],
 
       'react-hooks/static-components': 'off',
-
-      'no-restricted-syntax': [
-        'error',
-        {
-          'selector': 'AssignmentExpression[left.property.name=\'displayName\']',
-          'message':
-            'The use of \'displayName\' is prohibited. Use named exports (export const MyComponent = () => {}) so the component name can be inferred.',
-        },
-        {
-          'selector': 'Property[key.name=\'displayName\']',
-          'message':
-            'The use of \'displayName\' is prohibited in object definitions. Use named exports so the component name can be inferred.',
-        },
-      ],
     },
   },
   {
