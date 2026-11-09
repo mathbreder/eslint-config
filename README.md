@@ -2,8 +2,8 @@
 
 ## Whats included?
 
-- Standard config base;
-- Prettier;
+- Standard config base, with `@stylistic` rules for formatting;
+- Presets for React, Expo, Next.js, Vite and type-checked projects. Prettier itself is not enabled; see [Rules intentionally not enabled](#rules-intentionally-not-enabled).
 
 ## Setup
 
@@ -160,6 +160,7 @@ Two points to check when you migrate:
 `eslintConfigs.defineConfig` (the same function as `eslint/config`'s `defineConfig`, plus one check) does not remove or replace plugins:
 
 - Using the same plugin object in several presets is fine. The presets are not modified.
+- Two different registrations of the `import` plugin that are equivalent (same version and rule metadata) are merged: `defineConfig` keeps the instance of this package and points the other block to it, with a new block object. This is how `expoConfig` and `getEslintImportConfig` compose. Any other difference still throws.
 - Registering a plugin name twice with different implementations throws when you call `defineConfig`, and the message names both blocks, for example `Plugin "react-hooks" foi registrado com implementações diferentes em "bloco 2 (sem nome)" e "bloco 3 (sem nome)"`.
 
 Previous versions removed the second registration silently, which could apply rules from a different plugin version. Compositions that worked before still work; the incompatible ones now fail explicitly.
@@ -506,7 +507,7 @@ The workflow `.github/workflows/npm-publish.yml` has three jobs, and they separa
 
 The package is published with `publishConfig.access: public`, because it is scoped (`@mathbreder/...`). Before a release, run `pnpm run build && pnpm pack` and inspect the tarball, or run `pnpm run test:consumers`.
 
-Status of the CI: the workflow was checked statically (YAML, job dependencies, artifact flow, the single `NODE_AUTH_TOKEN` usage) and every check it runs was executed locally on the same tarball. The workflow has not run on GitHub Actions yet, so a first run on GitHub is still required. The actions use `actions/checkout` v7, `actions/setup-node` v7, `actions/upload-artifact` v7 and `actions/download-artifact` v8. `pnpm/action-setup` stays on v4, because v6 moved its setup to pnpm v11, and pnpm 10.28 was not verified with v6. In `setup-node` v7 the `NODE_AUTH_TOKEN` fallback was removed: the publish step sets `NODE_AUTH_TOKEN` explicitly, so the generated `.npmrc` resolves the token.
+Status of the CI: the workflow was checked statically (YAML, job dependencies, artifact flow, the single `NODE_AUTH_TOKEN` usage) and every check it runs was executed locally on the same tarball. The workflow runs on GitHub Actions for every pull request. On pull request #9, the build job and the consumer jobs on Node 20.19.0, 22.13.0, 22, 24 and 26 passed, and the publish job was skipped, as expected for a pull request. The actions use `actions/checkout` v7, `actions/setup-node` v7, `actions/upload-artifact` v7 and `actions/download-artifact` v8. `pnpm/action-setup` stays on v4, because v6 moved its setup to pnpm v11, and pnpm 10.28 was not verified with v6. In `setup-node` v7 the `NODE_AUTH_TOKEN` fallback was removed: the publish step sets `NODE_AUTH_TOKEN` explicitly, so the generated `.npmrc` resolves the token.
 
 ## Security
 
