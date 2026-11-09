@@ -50,13 +50,13 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
 - **Expo:** `expoConfig` is published only at `@mathbreder/eslint-config/expo`. It follows `eslint-config-expo` 58, which uses `react-hooks` 7 like the React preset, and its Node requirement comes from `eslint-plugin-expo` (see [Requirements](#requirements)). Projects on Expo 10 must stay on the previous package version. Combining `expoConfig` with `getEslintImportConfig` in one config array fails with a clear message, because Expo registers its own `eslint-plugin-import` instance; see [Known conflicts](#known-conflicts).
 - **Next.js:** `nextConfig` follows the `recommended` set of `@next/eslint-plugin-next` 16.4.5. That version adds `no-location-assign-relative-destination` as `warn`, which is inherited and reported in the Next.js section.
 - **Node.js:** consumer installs are checked with `pnpm install --engine-strict` on Node 20.19.0, 22.13.0, 22 (latest), 24 and 26. The consumer tests (see [Consumer tests](#consumer-tests)) run on each of them, and skip only the consumers whose framework requires a newer Node. Development runs on Node 22. `tsup` 9 requires Node `^22.18` and is used only on Node 22.
-- **Breaking change: `expoConfig` moved to `@mathbreder/eslint-config/expo`.** It is no longer part of `eslintConfigs`, and the main entry no longer loads `eslint-config-expo`, so projects without Expo do not need it. The migration is described in [Migrating `expoConfig`](#migrating-expoconfig). The package version is not changed by this update; the release that ships it sets the version.
+- **Breaking change: `expoConfig` moved to `@mathbreder/eslint-config/expo`.** It is no longer part of `eslintConfigs`, and the main entry no longer loads `eslint-config-expo`, so projects without Expo do not need it. The migration is described in [Migrating `expoConfig`](#migrating-expoconfig). This change is released as 0.1.0.
 - **Behavior changes in this update:**
   - `react-hooks/component-hook-factories` is deprecated in `eslint-plugin-react-hooks` 7.1.1 and no longer part of `recommended`. It is not re-added.
   - `expoConfig` now includes the `react-hooks` 7 rules, and turns `react-hooks/static-components` off in `.jsx` and `.tsx` files, as the React preset does.
   - No approved severity or option changed in `baseConfig`, `reactNextConfig`, `typeCheckedConfig`, `viteReactRefreshConfig` or `getEslintImportConfig`. This was checked by comparing the effective configuration with the previous commit.
 - **Peer dependencies not used by the source:** `eslint-config-next`, `eslint-plugin-n`, `eslint-plugin-promise`, `eslint-plugin-prettier`, `eslint-config-prettier`, `prettier` and `prettier-plugin-tailwindcss` are declared but not imported by any entrypoint. They are optional peers, so installing this package does not install them. They are kept for compatibility and are candidates for removal in a future major version.
-- **Breaking changes since 0.0.10 (the version is not changed yet):**
+- **Breaking changes in 0.1.0 (since 0.0.10):**
   1. `eslintConfigs.expoConfig` moved to `@mathbreder/eslint-config/expo`. See [Migrating `expoConfig`](#migrating-expoconfig).
   2. The types of `TsupPlugin.esbuildOptions` and of the tsup helpers use a structural subset of esbuild's `BuildOptions` instead of the esbuild type. See [Known conflicts](#known-conflicts).
   3. `import/no-cycle` reports cycles between TypeScript files, which it did not before. Projects with existing TypeScript cycles get new warnings. See [Known conflicts](#known-conflicts).
@@ -64,7 +64,7 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
   5. `PathGroup.group` is required. It was optional before.
   6. When `project` is omitted, the TypeScript resolver uses the `tsconfig.json` of the current working directory, as documented in the options table. Before, it looked for a `tsconfig.json` next to the package build, which projects did not have.
   7. Node.js support changed: `engines` is `^20.19.0 || ^22.13.0 || >=24.0.0`. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are no longer supported. See [Node.js support](#nodejs-support).
-  The release that ships these changes sets the version, following semantic versioning.
+  Version 0.1.0 is the first release with these changes. The `0.x` series allows breaking changes in a minor version.
 
 ### Installation
 

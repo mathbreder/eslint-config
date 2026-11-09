@@ -1,6 +1,6 @@
 {
   "name": "@mathbreder/eslint-config",
-  "version": "0.0.10",
+  "version": "0.1.0",
   "private": false,
   "description": "ESLint configuration used by mathbreder.",
   "type": "module",
