@@ -9,7 +9,7 @@ import tseslint from 'typescript-eslint';
 export const typeCheckedConfig = defineConfig([
   {
     name: 'eslint-typescript-type-checked',
-    files: ['**/*.{ts,tsx,mts,cts}'],
+    files: [ '**/*.{ts,tsx,mts,cts}' ],
     plugins: {
       '@typescript-eslint': tseslint.plugin,
     },

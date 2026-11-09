@@ -13,12 +13,12 @@ const { configs: reactHooksConfigs } = reactHooks;
  */
 export const reactNextConfig = defineConfig([
   reactPlugin.configs.flat.recommended,
-  reactPlugin.configs.flat[ 'jsx-runtime' ],
+  reactPlugin.configs.flat['jsx-runtime'],
   reactHooksConfigs.flat.recommended,
   jsxA11yPlugin.flatConfigs.recommended,
   {
     name: 'react-jsx',
-    files: ['**/*.{jsx,tsx}'],
+    files: [ '**/*.{jsx,tsx}' ],
     plugins: {},
     settings: {
       'react': {
@@ -86,14 +86,14 @@ export const reactNextConfig = defineConfig([
   },
   {
     name: 'react-frontend-alerts',
-    files: ['**/*.{js,jsx,ts,tsx}'],
+    files: [ '**/*.{js,jsx,ts,tsx}' ],
     rules: {
       'no-alert': 'warn',
     },
   },
   {
     name: 'stylistic-jsx',
-    files: ['**/*.{jsx,tsx}'],
+    files: [ '**/*.{jsx,tsx}' ],
     plugins: {
       '@stylistic': stylistic,
     },
@@ -123,7 +123,7 @@ export const reactNextConfig = defineConfig([
   },
   {
     name: 'a11y-jsx',
-    files: ['**/*.{jsx,tsx}'],
+    files: [ '**/*.{jsx,tsx}' ],
     rules: {
       'jsx-a11y/no-noninteractive-element-interactions': 'off',
     },

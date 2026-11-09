@@ -38,9 +38,9 @@ const canonicalizeImportPlugin = (configs: Config[]): Config[] => {
 
 const assertNoPluginCollisions = (configs: Config[]): void => {
   const registered = new Map<string, { plugin: unknown; configName: string }>();
-  for (const [index, cfg] of configs.entries()) {
+  for (const [ index, cfg ] of configs.entries()) {
     const configName = cfg.name ?? `bloco ${index + 1} (sem nome)`;
-    for (const [pluginName, plugin] of Object.entries(cfg.plugins ?? {})) {
+    for (const [ pluginName, plugin ] of Object.entries(cfg.plugins ?? {})) {
       const previous = registered.get(pluginName);
       if (!previous) {
         registered.set(pluginName, { plugin, configName });

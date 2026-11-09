@@ -64,6 +64,7 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
   5. `PathGroup.group` is required. It was optional before.
   6. When `project` is omitted, the TypeScript resolver uses the `tsconfig.json` of the current working directory, as documented in the options table. Before, it looked for a `tsconfig.json` next to the package build, which projects did not have.
   7. Node.js support changed: `engines` is `^20.19.0 || ^22.13.0 || >=24.0.0`. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are no longer supported. See [Node.js support](#nodejs-support).
+  8. Seven Stylistic rules are now `error`: `array-bracket-spacing`, `arrow-parens`, `arrow-spacing`, `comma-style`, `computed-property-spacing`, `eol-last` and `function-call-spacing`. Projects that use the presets may see new lint errors, most of them fixable by autofix. See [Rule review, batch 1](#rule-review-batch-1).
   Version 0.1.0 is the first release with these changes. The `0.x` series allows breaking changes in a minor version.
 
 ### Installation
@@ -263,6 +264,40 @@ Run `pnpm exec eslint --fix` once after the change and review the reordered impo
   }
   ```
 - Import organization uses `import/order`. `perfectionist/sort-imports` is not enabled, so the two rules do not conflict. Perfectionist still sorts union and intersection types.
+
+### Rule review, batch 1
+
+This batch reviewed 21 rules. The status below is the effective configuration, checked with `ESLint.calculateConfigForFile()` for `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts` and `.cts`, with `baseConfig`, `reactNextConfig` and `expoConfig`. React and Expo do not change any of these rules. The Stylistic rule names are used; the core ESLint names are not registered when a Stylistic rule covers the same behavior.
+
+| Rule | Decision | Effective setting | Origin |
+|---|---|---|---|
+| `array-bracket-newline` | kept | `error`, `{ multiline: true }` | `baseConfig` (Stylistic) |
+| `array-element-newline` | kept | `error`, `consistent` | `baseConfig` (Stylistic) |
+| `array-bracket-spacing` | **added** | `error`, `always` | `baseConfig` (Stylistic) |
+| `arrow-body-style` | off, by decision | off | not configured |
+| `arrow-parens` | **added** | `error`, `always` | `baseConfig` (Stylistic) |
+| `arrow-spacing` | **added** | `error`, `{ before: true, after: true }` | `baseConfig` (Stylistic) |
+| `babel/object-curly-spacing` | replaced | `@stylistic/object-curly-spacing`: `error`, `always` | `baseConfig` (Stylistic) |
+| `babel/quotes` | replaced | `@stylistic/quotes`: `error`, `single` | `baseConfig` (Stylistic) |
+| `babel/semi` | replaced | `@stylistic/semi`: `error`, `always` | `baseConfig` (Stylistic) |
+| `block-spacing` | kept | `error`, `always` | `baseConfig` (Stylistic) |
+| `brace-style` | kept | `error`, `1tbs`, `{ allowSingleLine: true }` | `baseConfig` (Stylistic) |
+| `camelcase` | off, by decision | off | not configured |
+| `class-methods-use-this` | off, by decision | off | not configured |
+| `comma-dangle` | kept | `error`, `always-multiline` | `baseConfig` (Stylistic) |
+| `comma-spacing` | kept | `error`, `{ before: false, after: true }` | `baseConfig` (Stylistic) |
+| `comma-style` | **added** | `error`, `last` | `baseConfig` (Stylistic) |
+| `computed-property-spacing` | **added** | `error`, `never` | `baseConfig` (Stylistic) |
+| `consistent-return` | off, by decision | off | not configured |
+| `dot-location` | kept | `error`, `property` | `baseConfig` (Stylistic) |
+| `eol-last` | **added** | `error`, `always` | `baseConfig` (Stylistic) |
+| `func-call-spacing` | **added** as `@stylistic/function-call-spacing` | `error`, `never` | `baseConfig` (Stylistic) |
+
+Notes on the decisions:
+
+- **Added (7 rules):** `array-bracket-spacing`, `arrow-parens`, `arrow-spacing`, `comma-style`, `computed-property-spacing`, `eol-last` and `function-call-spacing`. They are `error` and they are absent from every preset before this batch. Autofix is available for all seven. The package source had 115 violations, all from `array-bracket-spacing` (108), `eol-last` (5) and `computed-property-spacing` (2), and they were fixed by autofix. Projects that adopt the package will see these errors too, so they are a breaking change for lint results.
+- **Replaced `babel/*`:** `@babel/eslint-plugin` is not added. The three Stylistic rules above already enforce the same behavior, and they are active in every file extension.
+- **Off by decision:** `arrow-body-style` is not imposed, so block bodies and implicit returns are both accepted. `camelcase` is not global, because API, database and external object names may use other conventions. `class-methods-use-this` stays off, to avoid false positives in interfaces, inheritance and object-oriented code. `consistent-return` stays off. In TypeScript projects, the compiler option `noImplicitReturns` can enforce it, but this package does not assume that option in consumer projects and does not change their `tsconfig.json`.
 
 ### TypeScript files
 
