@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 
 import { ESLint } from 'eslint';
 
+const require = createRequire(import.meta.url);
+assert.throws(() => require.resolve('esbuild'), 'esbuild não deve estar instalado neste consumidor');
+
 const tsc = spawnSync(process.execPath, [path.join('node_modules', 'typescript', 'lib', 'tsc.js'), '--noEmit', '-p', 'tsconfig.json'], {
   encoding: 'utf8',
 });
-const tscErrors = `${tsc.stdout}${tsc.stderr}`.split('\n').filter((line) => /error TS\d+/.test(line));
-const unexpected = tscErrors.filter((line) => !/(Cannot find module|Cannot find module or type declarations for side-effect import of) 'esbuild'/.test(line));
-assert.equal(unexpected.length, 0, `tsc com erros fora do limite conhecido:\n${unexpected.join('\n')}`);
+assert.equal(tsc.status, 0, `tsc falhou (skipLibCheck: false):\n${tsc.stdout}${tsc.stderr}`);
 
 const eslint = new ESLint({ cwd: process.cwd() });
 const lint = async (file) => {

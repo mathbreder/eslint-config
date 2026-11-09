@@ -4,6 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "strict": true,
+    "skipLibCheck": false,
     "paths": {
       "@app/*": ["./src/app/*"]
     }

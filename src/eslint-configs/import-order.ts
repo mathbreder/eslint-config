@@ -22,6 +22,10 @@ export type GetEslintImportConfigOptions = {
   noUnresolvedIgnore?: string[];
 };
 
+export { importPlugin };
+
+const TYPESCRIPT_IMPORT_EXTENSIONS = ['.ts', '.cts', '.mts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
+
 export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Config[] => {
   const extraPathGroups = opts?.pathGroups ?? [];
   const noUnresolvedIgnore = opts?.noUnresolvedIgnore ?? [];
@@ -53,6 +57,7 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
         import: importPlugin,
       },
       settings: {
+        'import/extensions': TYPESCRIPT_IMPORT_EXTENSIONS,
         'import/resolver': {
           typescript: typescriptResolverOptions,
           node: true,
@@ -64,7 +69,7 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
         'import/no-unresolved': noUnresolvedIgnore.length > 0
           ? ['error', { ignore: noUnresolvedIgnore }]
           : 'error',
-        'import/no-cycle': 'warn',
+        'import/no-cycle': ['warn', { disableScc: true }],
       },
     },
   ];

@@ -70,13 +70,12 @@ test('react e Expo 58 compõem nesta instalação porque compartilham a instânc
   ]));
 });
 
-test('expoConfig com getEslintImportConfig colide no plugin import (limitação anterior, também no HEAD)', () => {
-  assert.throws(
-    () => eslintConfigs.defineConfig([
-      ...eslintConfigs.baseConfig,
-      ...expoConfig,
-      ...getEslintImportConfig(),
-    ]),
-    /Plugin "import" foi registrado com implementações diferentes/,
-  );
+test('expoConfig com getEslintImportConfig compõe com uma única instância de plugin import', () => {
+  const configs = eslintConfigs.defineConfig([
+    ...eslintConfigs.baseConfig,
+    ...expoConfig,
+    ...getEslintImportConfig(),
+  ]);
+  const importInstances = new Set(configs.filter((cfg) => cfg.plugins?.import).map((cfg) => cfg.plugins.import));
+  assert.equal(importInstances.size, 1);
 });

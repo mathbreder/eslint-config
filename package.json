@@ -109,7 +109,28 @@
     "eslint-config-expo": {
       "optional": true
     },
+    "eslint-config-next": {
+      "optional": true
+    },
+    "eslint-config-prettier": {
+      "optional": true
+    },
+    "eslint-plugin-n": {
+      "optional": true
+    },
+    "eslint-plugin-prettier": {
+      "optional": true
+    },
+    "eslint-plugin-promise": {
+      "optional": true
+    },
     "eslint-plugin-react-refresh": {
+      "optional": true
+    },
+    "prettier": {
+      "optional": true
+    },
+    "prettier-plugin-tailwindcss": {
       "optional": true
     },
     "typescript": {

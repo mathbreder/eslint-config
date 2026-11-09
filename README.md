@@ -44,7 +44,12 @@ Recommended for development of this repository: Node.js 22, pnpm 10.28, ESLint 9
   - `react-hooks/component-hook-factories` is deprecated in `eslint-plugin-react-hooks` 7.1.1 and no longer part of `recommended`. It is not re-added.
   - `expoConfig` now includes the `react-hooks` 7 rules, and turns `react-hooks/static-components` off in `.jsx` and `.tsx` files, as the React preset does.
   - No approved severity or option changed in `baseConfig`, `reactNextConfig`, `typeCheckedConfig`, `viteReactRefreshConfig` or `getEslintImportConfig`. This was checked by comparing the effective configuration with the previous commit.
-- **Peer dependencies not used by the source:** `eslint-config-next`, `eslint-plugin-n`, `eslint-plugin-promise`, `eslint-plugin-prettier`, `eslint-config-prettier` and `prettier-plugin-tailwindcss` are declared but not imported. They are kept for compatibility and are candidates for removal in a future major version.
+- **Peer dependencies not used by the source:** `eslint-config-next`, `eslint-plugin-n`, `eslint-plugin-promise`, `eslint-plugin-prettier`, `eslint-config-prettier`, `prettier` and `prettier-plugin-tailwindcss` are declared but not imported by any entrypoint. They are optional peers, so installing this package does not install them. They are kept for compatibility and are candidates for removal in a future major version.
+- **Breaking changes since 0.0.10 (the version is not changed yet):**
+  1. `eslintConfigs.expoConfig` moved to `@mathbreder/eslint-config/expo`. See [Migrating `expoConfig`](#migrating-expoconfig).
+  2. The types of `TsupPlugin.esbuildOptions` and of the tsup helpers use a structural subset of esbuild's `BuildOptions` instead of the esbuild type. See [Known conflicts](#known-conflicts).
+  3. `import/no-cycle` reports cycles between TypeScript files, which it did not before. Projects with existing TypeScript cycles get new warnings. See [Known conflicts](#known-conflicts).
+  The release that ships these changes sets the version, following semantic versioning.
 
 ### Installation
 
@@ -60,6 +65,7 @@ pnpm installs the required peer dependencies (the ones in `package.json` without
 | `@next/eslint-plugin-next` `^16.4.5` | you import `@mathbreder/eslint-config/next` |
 | `eslint-plugin-react-refresh` `^0.5.7` | you import `@mathbreder/eslint-config/react-refresh-vite` |
 | `typescript` `>=4.8.4 <6.1.0` | you use TypeScript |
+| `eslint-config-next`, `eslint-plugin-n`, `eslint-plugin-promise`, `eslint-plugin-prettier`, `eslint-config-prettier`, `prettier`, `prettier-plugin-tailwindcss` | your own configuration uses them. This package does not import them |
 
 Use `--engine-strict` in CI and in new projects, so a Node version outside the supported range fails the install instead of being ignored.
 
@@ -145,7 +151,7 @@ Previous versions removed the second registration silently, which could apply ru
 
 ### React and Expo in one monorepo
 
-`reactNextConfig` and `expoConfig` can share one config array when both resolve to the same `react-hooks` instance, which is the case with `eslint-config-expo` 58. File scopes do not split plugin names, though: ESLint registers names for the whole array, so two different implementations of the same plugin cannot coexist in one array. When a project needs different implementations, or Expo must be combined with `getEslintImportConfig` (Expo's own `eslint-plugin-import` is a separate instance; see [Known conflicts](#known-conflicts)), use one `eslint.config` per project and run ESLint from each project directory, so ESLint loads the nearest config:
+`reactNextConfig` and `expoConfig` can share one config array when both resolve to the same `react-hooks` instance, which is the case with `eslint-config-expo` 58. File scopes do not split plugin names, though: ESLint registers names for the whole array, so two different implementations of the same plugin cannot coexist in one array. `expoConfig` can be combined with `getEslintImportConfig` in one array (see [Known conflicts](#known-conflicts)). When a project needs two different implementations of the same plugin, use one `eslint.config` per project and run ESLint from each project directory, so ESLint loads the nearest config:
 
 ```
 apps/
@@ -419,9 +425,11 @@ The path is resolved from the directory where ESLint runs (`process.cwd()`), not
 
 - `export default () => <div />` triggers `react/display-name` (warn). The config sets `react/function-component-definition` to `unnamedComponents: 'arrow-function'`, so anonymous arrow components are not reported as errors.
 - Malformed JSX indentation is reported by both `@stylistic/indent` and `react/jsx-indent`, so the same error appears twice. Both rules expect the same indentation, so there is no contradiction. This duplication is accepted.
-- `expoConfig` combined with `getEslintImportConfig` fails with `Plugin "import" foi registrado com implementações diferentes`. The cause is the lockfile: `eslint-plugin-import@2.32.0` appears as three pnpm instances, because `eslint-config-expo` 58 depends on `eslint-import-resolver-typescript` ^3.6, while this package uses 4.x, so the peer sets differ. This already happened before this update. The package does not force deduplication, since that could break other peers. Until it is resolved, Expo projects that need import rules should use a separate `eslint.config` with the Expo preset, or drop `getEslintImportConfig` for that project.
-- The main entry also exports the tsup helpers (`fixBuildImportsPlugin` and `overrideSwcPlugin`), whose type declarations reference `esbuild`. TypeScript consumers that do not have `esbuild` installed see a `Cannot find module 'esbuild'` error unless they use `skipLibCheck: true`. The JavaScript output does not import `esbuild`, so runtime use is not affected. Moving the tsup helpers to their own subpath would remove this, but it changes the import path, so it is left as a separate decision.
-- `@swc/core` is a required peer dependency, because the main entry exports the tsup helpers, which load it. `eslint-config-expo` is an optional peer: only projects that import `@mathbreder/eslint-config/expo` need it.
+- `expoConfig` combined with `getEslintImportConfig` used to fail with `Plugin "import" foi registrado com implementações diferentes`. The cause is that `eslint-plugin-import` 2.32.0 is installed as two pnpm instances: `eslint-config-expo` 58 depends on `eslint-import-resolver-typescript` 3.x, while this package uses 4.x. Both instances have the same version and the same rule metadata. `defineConfig` now keeps this package's instance, which resolves imports with the resolver this package declares, and points the Expo block at it. Any other plugin conflict still fails with the same message. The package does not change the lockfile to deduplicate peer contexts, because that would not reach consumers.
+- `import/no-cycle` runs with `disableScc: true`. This option makes the rule check cycles directly instead of through strongly connected components. It reports the same cycles, and it avoids a crash in `eslint-plugin-import` 2.32.0 when the file being linted cannot be resolved by the TypeScript resolver, which happens with the Expo preset. The cost is speed on very large import graphs.
+- `import/no-cycle` reports cycles between TypeScript files (`.ts`, `.tsx`, `.mts`, `.cts`). Before this update the preset did not set `import/extensions`, so the rule never reported cycles between `.ts` files. The preset now sets `import/extensions` to the TypeScript and JavaScript extensions, which is the same list `expoConfig` uses. As a consequence, projects that already had TypeScript cycles will see new `import/no-cycle` warnings after the update. Type-only imports are still ignored by the rule.
+- The tsup helpers (`fixBuildImportsPlugin` and `overrideSwcPlugin`) are still exported from the main entry. Their declarations no longer reference `esbuild`, so TypeScript consumers do not need `esbuild` installed and do not need `skipLibCheck: true`. The option type is a structural subset of esbuild's `BuildOptions`. A function annotated with the full esbuild type may need a cast when it is assigned to `esbuildOptions`.
+- `@swc/core` is a required peer dependency, because the main entry loads the tsup helper `overrideSwcPlugin`, which imports it. `eslint-config-expo` is an optional peer: only projects that import `@mathbreder/eslint-config/expo` need it.
 
 ## Tests
 
@@ -429,7 +437,7 @@ The path is resolved from the directory where ESLint runs (`process.cwd()`), not
 pnpm test
 ```
 
-Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), the TypeScript native overrides and overloads, `no-require-imports` with `allow`, `import/order`, `import/no-unresolved` (including the `@/` alias), JSX indentation, `react/display-name`, React Hooks, the opt-in React Refresh preset, the type-checked preset (`no-floating-promises` on real files, across two `tsconfig.json` projects, and an out-of-project file), the quality rules and `no-alert` by preset, plugin composition (identity reuse, collisions, no mutation of presets), `.mjs` and `.cjs` handling, a React and Expo monorepo with one config per project, and the effective severities of inherited rules. `expo-subpath-migration.test.mjs` covers the Expo migration: `expoConfig` is absent from `eslintConfigs`, the `./expo` export resolves in ESM and CommonJS with the expected files, no module reachable from the main entry imports `eslint-config-expo`, and the peer is optional. The consumer tests are a separate command, described below.
+Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), the TypeScript native overrides and overloads, `no-require-imports` with `allow`, `import/order`, `import/no-unresolved` (including the `@/` alias), JSX indentation, `react/display-name`, React Hooks, the opt-in React Refresh preset, the type-checked preset (`no-floating-promises` on real files, across two `tsconfig.json` projects, and an out-of-project file), the quality rules and `no-alert` by preset, plugin composition (identity reuse, collisions, no mutation of presets), `.mjs` and `.cjs` handling, a React and Expo monorepo with one config per project, and the effective severities of inherited rules. `expo-subpath-migration.test.mjs` covers the Expo migration: `expoConfig` is absent from `eslintConfigs`, the `./expo` export resolves in ESM and CommonJS with the expected files, no module reachable from the main entry imports `eslint-config-expo`, and the peer is optional. `typescript-cycles.test.mjs` covers cycles between TypeScript files, `.tsx` files, aliases, type-only imports and the Expo composition, and checks that the rule keeps its severity and `disableScc`. The consumer tests are a separate command, described below.
 
 ## Consumer tests
 
@@ -464,6 +472,17 @@ The workflow `.github/workflows/npm-publish.yml` has three jobs, and they separa
 - **`publish-npm`:** runs only when a release is created, after `build` and `consumers` pass. It publishes the same tarball that was tested, with `pnpm publish` and the `npm_token` repository secret.
 
 The package is published with `publishConfig.access: public`, because it is scoped (`@mathbreder/...`). Before a release, run `pnpm run build && pnpm pack` and inspect the tarball, or run `pnpm run test:consumers`.
+
+Status of the CI: the workflow was checked statically (YAML, job dependencies, artifact flow, the single `NODE_AUTH_TOKEN` usage) and every check it runs was executed locally on the same tarball. The workflow has not run on GitHub Actions yet, so a first run on GitHub is still required. The actions use `actions/checkout` v7, `actions/setup-node` v7, `actions/upload-artifact` v7 and `actions/download-artifact` v8. `pnpm/action-setup` stays on v4, because v6 moved its setup to pnpm v11, and pnpm 10.28 was not verified with v6. In `setup-node` v7 the `NODE_AUTH_TOKEN` fallback was removed: the publish step sets `NODE_AUTH_TOKEN` explicitly, so the generated `.npmrc` resolves the token.
+
+## Security
+
+`pnpm audit` reports the advisories of the whole development tree, and it reports only what a consumer receives when it audits the installed package. The two results differ, so both are reported here.
+
+- **Consumer tree** (this package with every peer dependency, including the optional ones, installed from the tarball): one advisory, moderate, `minimatch` 10.2.6 (GHSA-g3hv-75wg-m249, CWE-405, denial of service through a glob pattern with `optimizationLevel` 2 or higher). It reaches consumers through `@typescript-eslint/typescript-estree` 8.72.1, which depends on `minimatch` ^10. The fix is in `minimatch` 11.0.1, which needs `typescript-eslint` 9, a major upgrade that is not part of this release. The exposure is limited to glob patterns that come from untrusted input, such as the `tsconfig.json` of a pull request that a CI job lints. Accepted as a residual risk.
+- **Repository tree**: 23 advisories before the targeted lockfile update, and 1 after it. The update changed only the lockfile, and only the packages listed in the advisories, inside the ranges their parents already declare: `minimatch` 3.1.5, `brace-expansion` 1.1.21, `picomatch` 2.3.2, `flatted` 3.4.4, `browserslist` 4.29.5, `zod` 4.6.7, `@babel/core` 7.29.13, `@humanfs/node` 0.16.8 and `baseline-browser-mapping` 2.11.35, with the data packages that `browserslist` needs. The remaining advisory is the `minimatch` 10.2.6 above.
+
+Run `pnpm audit` in the repository and `pnpm audit --prod` in a consumer project. Do not use `pnpm audit --fix` here: it would update packages outside the advisories.
 
 ## Automated dependency updates 🔄
 We use Dependabot to keep dependencies and GitHub Actions up to date. Dependabot opens weekly pull requests with suggested upgrades so you can review and merge them.

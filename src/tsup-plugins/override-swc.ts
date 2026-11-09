@@ -2,11 +2,11 @@ import fs from 'fs';
 import path from 'path';
 
 import swc, { type JscConfig, type JscTarget } from '@swc/core';
-import type { BuildOptions, Plugin as EsbuildPlugin, PluginBuild, TsconfigRaw } from 'esbuild';
 
+import type { EsbuildBuildOptions, EsbuildPlugin, EsbuildPluginBuild, TsconfigRaw } from '../types/esbuild-subset';
 import type { TsupPlugin } from '../types/tsup-plugin';
 
-export type OverrideSwcOptions = BuildOptions & {
+export type OverrideSwcOptions = EsbuildBuildOptions & {
   tsConfigPath?: string;
 };
 
@@ -56,7 +56,7 @@ const transformSwc = (filePath: string, jsc: JscConfig) =>
     swcrc: false,
   });
 
-const getSwcPlugin = (options: BuildOptions) => {
+const getSwcPlugin = (options: EsbuildBuildOptions) => {
   return options.plugins?.find((p: EsbuildPlugin) => p.name === 'swc');
 };
 
@@ -73,7 +73,7 @@ const getCode = (swcOutput: swc.Output, sourcePath: string) => {
   return returnData;
 };
 
-const onLoad = async (build: PluginBuild, tsConfig: TsconfigRaw) => {
+const onLoad = async (build: EsbuildPluginBuild, tsConfig: TsconfigRaw) => {
   const filter = /\.[jt]sx?$/;
   build.onLoad({ filter }, async (args) => {
     const isTs = /\.tsx?$/.test(args.path);
@@ -89,7 +89,7 @@ const onLoad = async (build: PluginBuild, tsConfig: TsconfigRaw) => {
   });
 };
 
-const newSwcPluginSetup = (build: PluginBuild) => {
+const newSwcPluginSetup = (build: EsbuildPluginBuild) => {
   const options: OverrideSwcOptions = build.initialOptions;
   const tsConfigPath = options.tsConfigPath || 'tsconfig.json';
   const tsConfig: TsconfigRaw = getTsConfigContent(tsConfigPath);
@@ -98,7 +98,7 @@ const newSwcPluginSetup = (build: PluginBuild) => {
   onLoad(build, tsConfig);
 };
 
-const setup = (options: BuildOptions) => {
+const setup = (options: EsbuildBuildOptions) => {
   const plugin = getSwcPlugin(options);
   if (!plugin) return;
   plugin.setup = newSwcPluginSetup;

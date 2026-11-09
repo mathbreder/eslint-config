@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "strict": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "es2022",
+    "noEmit": true,
+    "paths": {
+      "@app/*": ["../app/src/app/*"],
+      "@shared/*": ["../app/src/shared/*"],
+      "@/*": ["../app/src/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

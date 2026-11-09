@@ -17,7 +17,7 @@ const CONSUMERS = [
   { name: 'node-cjs', verify: ['node', 'verify.cjs'], optional: ['eslint-plugin-react-refresh'], nodeRange: CJS_REQUIRE_ESM, reason: 'require(esm) estável (Node 20.19+, 22.12+ ou 23+)' },
   { name: 'typescript', verify: ['node', 'verify.mjs'], optional: ['typescript'] },
   { name: 'react', verify: ['node', 'verify.mjs'] },
-  { name: 'expo', verify: ['node', 'verify.mjs'], optional: ['eslint-config-expo'], nodeRange: EXPO_FRAMEWORK, reason: 'eslint-plugin-expo exige Node 22.13+, 24.3+, 26+ ou 27+' },
+  { name: 'expo', verify: ['node', 'verify.mjs'], optional: ['eslint-config-expo', 'typescript'], nodeRange: EXPO_FRAMEWORK, reason: 'eslint-plugin-expo exige Node 22.13+, 24.3+, 26+ ou 27+' },
   { name: 'vite-react', verify: ['node', 'verify.mjs'], optional: ['eslint-plugin-react-refresh'] },
   { name: 'monorepo', verify: ['node', 'verify.mjs'], optional: ['eslint-config-expo'], nodeRange: EXPO_FRAMEWORK, reason: 'o app mobile usa expoConfig (eslint-plugin-expo exige Node 22.13+)' },
   { name: 'next', verify: ['node', 'verify.mjs'], optional: ['@next/eslint-plugin-next'] },
