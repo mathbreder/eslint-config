@@ -37,7 +37,10 @@ jobs:
       - run: pnpm exec tsc --noEmit
       - run: pnpm test
       - run: pnpm pack --pack-destination tarball
-      - run: pnpm publish "$(ls tarball/*.tgz)" --dry-run --no-git-checks --access public
+      - name: Dry-run do tarball que será publicado
+        run: |
+          test "$(ls tarball/*.tgz | wc -l)" -eq 1
+          pnpm publish "./$(ls tarball/*.tgz)" --dry-run --no-git-checks --access public
       - uses: actions/upload-artifact@v7
         with:
           name: package-tarball
@@ -66,7 +69,10 @@ jobs:
         with:
           name: package-tarball
           path: tarball
-      - run: node tests/consumers/run.mjs --tarball "$(ls tarball/*.tgz)"
+      - name: Testar o tarball nos consumidores
+        run: |
+          test "$(ls tarball/*.tgz | wc -l)" -eq 1
+          node tests/consumers/run.mjs --tarball "./$(ls tarball/*.tgz)"
 
   publish-npm:
     name: Publish to npm
@@ -88,6 +94,9 @@ jobs:
         with:
           name: package-tarball
           path: tarball
-      - run: pnpm publish "$(ls tarball/*.tgz)" --no-git-checks --access public
+      - name: Publicar o tarball verificado
+        run: |
+          test "$(ls tarball/*.tgz | wc -l)" -eq 1
+          pnpm publish "./$(ls tarball/*.tgz)" --no-git-checks --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
