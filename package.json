@@ -10,7 +10,7 @@
     "LICENSE"
   ],
   "engines": {
-    "node": "^18.18.0 || ^20.9.0 || >=22.0.0"
+    "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
   },
   "publishConfig": {
     "access": "public"

@@ -4,10 +4,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { satisfiesNodeRange } from './node-range.mjs';
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
 const pkg = JSON.parse(fs.readFileSync(path.join(repo, 'package.json'), 'utf8'));
 const KEEP = process.env.KEEP_CONSUMERS === '1';
+const MAX_DIAGNOSTIC_LINES = 400;
 
 const CJS_REQUIRE_ESM = '^20.19.0 || ^22.12.0 || >=23.0.0';
 const EXPO_FRAMEWORK = '^22.13.0 || ^24.3.0 || ^26.0.0 || >=27.0.0';
@@ -23,37 +26,53 @@ const CONSUMERS = [
   { name: 'next', verify: ['node', 'verify.mjs'], optional: ['@next/eslint-plugin-next'] },
 ];
 
-const parseVersion = (text) => text.replace(/^[^\d]*/, '').split('.').map((part) => Number(part) || 0);
-
-const compareVersions = (left, right) => {
-  for (let index = 0; index < 3; index += 1) {
-    const diff = (left[index] ?? 0) - (right[index] ?? 0);
-    if (diff !== 0) return diff;
-  }
-  return 0;
-};
-
-const satisfiesClause = (version, clause) => {
-  const trimmed = clause.trim();
-  if (trimmed.startsWith('>=')) return compareVersions(version, parseVersion(trimmed)) >= 0;
-  if (trimmed.startsWith('^')) {
-    const base = parseVersion(trimmed);
-    return version[0] === base[0] && compareVersions(version, base) >= 0;
-  }
-  return compareVersions(version, parseVersion(trimmed)) === 0;
-};
-
-const satisfiesNodeRange = (nodeVersion, range) => {
-  const version = parseVersion(nodeVersion);
-  return range.split('||').some((clause) => satisfiesClause(version, clause));
-};
-
 const run = (command, args, options = {}) => spawnSync(command, args, {
   encoding: 'utf8',
   shell: process.platform === 'win32',
   timeout: 15 * 60 * 1000,
+  maxBuffer: 64 * 1024 * 1024,
   ...options,
 });
+
+const redact = (text) => text
+  .split('\n')
+  .map((line) => (/(_auth|_authToken|token|password|secret|authorization)/i.test(line) ? '[linha redigida]' : line))
+  .join('\n');
+
+const tail = (text) => {
+  const lines = redact(text).split('\n');
+  if (lines.length <= MAX_DIAGNOSTIC_LINES) return lines.join('\n');
+  return `[... ${lines.length - MAX_DIAGNOSTIC_LINES} linhas anteriores omitidas ...]\n${lines.slice(-MAX_DIAGNOSTIC_LINES).join('\n')}`;
+};
+
+const pnpmRuntime = (workRoot) => {
+  const probeDir = path.join(workRoot, 'pnpm-runtime-probe');
+  fs.mkdirSync(probeDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(probeDir, 'package.json'),
+    JSON.stringify({ name: 'pnpm-runtime-probe', private: true, scripts: { probe: 'node -p process.env.npm_config_user_agent' } }),
+  );
+  const probe = run('pnpm', ['run', '-s', 'probe'], { cwd: probeDir, env: { ...process.env, npm_config_loglevel: 'silent' } });
+  const userAgent = `${probe.stdout ?? ''}${probe.stderr ?? ''}`;
+  const runtime = /pnpm\/(\S+)\s.*node\/v([\d.]+)/.exec(userAgent)
+    ?? /pnpm\/(\S+).*?node\/v([\d.]+)/.exec(userAgent);
+  if (probe.status !== 0 || !runtime) {
+    throw new Error(`não foi possível identificar o runtime do pnpm (código ${probe.status}):\n${tail(userAgent)}`);
+  }
+  return { pnpmVersion: runtime[1], nodeVersion: runtime[2] };
+};
+
+const assertPnpmRunsOnHarnessNode = (workRoot) => {
+  const harnessNode = process.versions.node;
+  const pnpm = pnpmRuntime(workRoot);
+  if (pnpm.nodeVersion !== harnessNode) {
+    throw new Error(
+      `o pnpm executa sob Node ${pnpm.nodeVersion}, mas o harness roda sob Node ${harnessNode}. `
+      + 'As instalações não representariam o ambiente testado. Ajuste o PATH para que o pnpm use o mesmo Node.',
+    );
+  }
+  return pnpm;
+};
 
 const requiredPeers = () => {
   const meta = pkg.peerDependenciesMeta ?? {};
@@ -64,9 +83,9 @@ const requiredPeers = () => {
 
 const buildAndPack = (destination) => {
   const build = run('pnpm', ['run', 'build'], { cwd: repo });
-  if (build.status !== 0) throw new Error(`build falhou:\n${build.stdout}${build.stderr}`);
+  if (build.status !== 0) throw new Error(`build falhou:\n${tail(`${build.stdout}${build.stderr}`)}`);
   const pack = run('pnpm', ['pack', '--pack-destination', destination], { cwd: repo });
-  if (pack.status !== 0) throw new Error(`pack falhou:\n${pack.stdout}${pack.stderr}`);
+  if (pack.status !== 0) throw new Error(`pack falhou:\n${tail(`${pack.stdout}${pack.stderr}`)}`);
   const tarball = fs.readdirSync(destination).find((file) => file.endsWith('.tgz'));
   if (!tarball) throw new Error('tarball não encontrado após pack');
   return path.join(destination, tarball);
@@ -95,16 +114,60 @@ const prepareConsumer = (consumer, tarball, workRoot) => {
   return dest;
 };
 
-const runConsumer = (consumer, tarball, workRoot) => {
+const runConsumer = (consumer, tarball, workRoot, runtime) => {
   const dest = prepareConsumer(consumer, tarball, workRoot);
-  const install = run('pnpm', ['install', '--reporter=silent', '--engine-strict'], { cwd: dest });
+  const installArgs = ['install', '--engine-strict'];
+  const install = run('pnpm', installArgs, { cwd: dest });
+  const installOutput = `${install.stdout ?? ''}${install.stderr ?? ''}`;
   if (install.status !== 0) {
-    return { ok: false, stage: 'install', output: `${install.stdout}${install.stderr}` };
+    return {
+      ok: false,
+      stage: 'install',
+      diagnostic: {
+        command: `pnpm ${installArgs.join(' ')}`,
+        cwd: dest,
+        exitCode: install.status,
+        error: install.error ? String(install.error) : null,
+        pnpmVersion: runtime.pnpmVersion,
+        nodeVersion: runtime.nodeVersion,
+        output: installOutput,
+      },
+    };
   }
   const [command, ...args] = consumer.verify;
   const check = run(command, args, { cwd: dest });
-  const output = `${check.stdout}${check.stderr}`;
-  return { ok: check.status === 0, stage: 'verify', output };
+  const output = `${check.stdout ?? ''}${check.stderr ?? ''}`;
+  if (check.status !== 0) {
+    return {
+      ok: false,
+      stage: 'verify',
+      diagnostic: {
+        command: [command, ...args].join(' '),
+        cwd: dest,
+        exitCode: check.status,
+        error: check.error ? String(check.error) : null,
+        pnpmVersion: runtime.pnpmVersion,
+        nodeVersion: process.versions.node,
+        output,
+      },
+    };
+  }
+  return { ok: true };
+};
+
+const printDiagnostic = (consumer, result) => {
+  const d = result.diagnostic;
+  console.log(`FAIL ${consumer.name} (${result.stage})`);
+  console.log(`  comando:      ${d.command}`);
+  console.log(`  diretório:    ${d.cwd}`);
+  console.log(`  node (harness/execução): ${process.versions.node}`);
+  console.log(`  node (pnpm): ${d.nodeVersion}`);
+  console.log(`  pnpm:         ${d.pnpmVersion}`);
+  console.log(`  código de saída: ${d.exitCode}`);
+  if (d.error) console.log(`  erro de inicialização: ${d.error}`);
+  console.log('  ----- saída (stdout e stderr) -----');
+  console.log(tail(d.output));
+  console.log('  ----- fim da saída -----');
 };
 
 const parseArguments = (argv) => {
@@ -127,6 +190,8 @@ const main = () => {
   let skips = 0;
   console.log(`Node ${nodeVersion}, engine-strict`);
   try {
+    const runtime = assertPnpmRunsOnHarnessNode(workRoot);
+    console.log(`pnpm ${runtime.pnpmVersion} executando sob Node ${runtime.nodeVersion}`);
     let tarball;
     if (tarballArgument) {
       tarball = resolveTarball(tarballArgument);
@@ -142,15 +207,18 @@ const main = () => {
         console.log(`SKIP ${consumer.name}: ${consumer.reason}`);
         continue;
       }
-      const result = runConsumer(consumer, tarball, workRoot);
+      const result = runConsumer(consumer, tarball, workRoot, runtime);
       if (result.ok) {
         passes += 1;
         console.log(`PASS ${consumer.name}`);
       } else {
         failures += 1;
-        console.log(`FAIL ${consumer.name} (${result.stage})\n${result.output}`);
+        printDiagnostic(consumer, result);
       }
     }
+  } catch (error) {
+    failures += 1;
+    console.log(`ERRO DO HARNESS: ${error.message}`);
   } finally {
     if (KEEP) {
       console.log(`consumidores mantidos em ${workRoot}`);

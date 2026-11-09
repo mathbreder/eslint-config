@@ -11,9 +11,9 @@
 
 Node.js has two different requirements: the one for consumers, which this package declares in `engines`, and the one for development in this repository.
 
-- **Consumers:** Node.js `^18.18.0 || ^20.9.0 || >=22.0.0`. The requirement depends on the module format:
-  - **ESM** (`import`): Node 18.18+, 20.9+ and 22+. Use `import` on Node 18.
-  - **CommonJS** (`require`): Node 20.19+, 22.12+ and 23+. The CommonJS entry loads `@stylistic/eslint-plugin` 5.10, which is ESM-only, through `require(esm)`. On Node 18 and on 20.9 to 20.18, `require()` fails with `ERR_REQUIRE_ESM`.
+- **Consumers:** Node.js `^20.19.0 || ^22.13.0 || >=24.0.0`, declared in `engines`. This is the range that the real dependency tree installs with `--engine-strict`. The transitive package `eslint-visitor-keys@5` requires exactly this range, through `@typescript-eslint/*`. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are not supported. Support for Node 18 was investigated and could not be kept with the current dependency tree; see [Node.js support](#nodejs-support).
+  - **ESM** (`import`) and **CommonJS** (`require`) both work on every supported version.
+  - The CommonJS entry loads `@stylistic/eslint-plugin` 5.10, which is ESM-only, through `require(esm)`. This is stable on the supported versions.
 - **Development (this repository):** Node.js 22. Build, lint, unit tests and packing run on Node 22, because `tsup` 9 requires Node `^22.18`.
 
 Framework requirements, which apply only when you use that preset:
@@ -32,13 +32,24 @@ Other requirements:
 
 Recommended for development of this repository: Node.js 22, pnpm 10.28, ESLint 9.39.5, TypeScript 6.0.3, `typescript-eslint` 8.72.1 and `eslint-config-expo` 58.0.4.
 
+### Node.js support
+
+Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are not supported.
+
+- **Cause:** the transitive package `eslint-visitor-keys@5.0.1`, required through `@typescript-eslint/visitor-keys` by `@typescript-eslint/*` 8.72, declares `engines.node` as `^20.19.0 || ^22.13.0 || >=24`. With `pnpm install --engine-strict`, any consumer on a lower Node version fails with `ERR_PNPM_UNSUPPORTED_ENGINE`. The packages that declare Node 18 in their own `engines` do not change this, because the restriction comes from the leaf package.
+- **What was tried:** pinning `typescript-eslint` to 8.55 (the last line that uses `eslint-visitor-keys@4`) was not enough, because `eslint-plugin-perfectionist` pulls `@typescript-eslint/utils` 8.72 and reaches the same leaf. Keeping Node 18 would require pinning the whole `@typescript-eslint` family and downgrading TypeScript, which breaks TypeScript 6 support. Overrides in this package would not reach consumers.
+- **Result:** `engines` is `^20.19.0 || ^22.13.0 || >=24.0.0`. This is the intersection of the ranges required by the dependency tree, so it matches what `--engine-strict` installs.
+- **CommonJS:** supported on every version in `engines`. ESM is supported on the same versions.
+- **Expo:** `expoConfig` keeps its own requirement, from `eslint-plugin-expo` 1.2.1: Node `^22.13 || ^24.3 || ^26 || >=27`. Node 24.0 to 24.2 and Node 25 are excluded by that preset, not by this package.
+- **Next.js:** `nextConfig` has no Node requirement of its own beyond the package's.
+
 ### Compatibility policy
 
 - **ESLint 9.39.5 (transitional):** the npm registry marks this version as deprecated, with the notice that it is no longer supported. It is kept on purpose: ESLint 10.14 is available, but `eslint-plugin-react@7.37.5`, `eslint-plugin-jsx-a11y@6.10.2` and `eslint-plugin-import@2.32.0` do not declare ESLint 10 support. The migration to ESLint 10 is pending until those plugins declare it.
 - **TypeScript:** development uses TypeScript 6.0.3. The supported range for consumers is `>=4.8.4 <6.1.0`; TypeScript 7 is not supported. `tsconfig.json` sets `ignoreDeprecations: "6.0"` because the declaration bundler still emits `baseUrl`, which TypeScript 7 removes. Revisit this before a TypeScript 7 upgrade.
 - **Expo:** `expoConfig` is published only at `@mathbreder/eslint-config/expo`. It follows `eslint-config-expo` 58, which uses `react-hooks` 7 like the React preset, and its Node requirement comes from `eslint-plugin-expo` (see [Requirements](#requirements)). Projects on Expo 10 must stay on the previous package version. Combining `expoConfig` with `getEslintImportConfig` in one config array fails with a clear message, because Expo registers its own `eslint-plugin-import` instance; see [Known conflicts](#known-conflicts).
 - **Next.js:** `nextConfig` follows the `recommended` set of `@next/eslint-plugin-next` 16.4.5. That version adds `no-location-assign-relative-destination` as `warn`, which is inherited and reported in the Next.js section.
-- **Node.js:** consumer installs are checked with `pnpm install --engine-strict` on Node 18.18.2, 18.20.8, 20.9.0, 20.19.0, 22, 24 and 26. The consumer tests (see [Consumer tests](#consumer-tests)) run on each of them, and skip only the consumers whose framework requires a newer Node. Development runs on Node 22. `tsup` 9 requires Node `^22.18` and is used only on Node 22.
+- **Node.js:** consumer installs are checked with `pnpm install --engine-strict` on Node 20.19.0, 22.13.0, 22 (latest), 24 and 26. The consumer tests (see [Consumer tests](#consumer-tests)) run on each of them, and skip only the consumers whose framework requires a newer Node. Development runs on Node 22. `tsup` 9 requires Node `^22.18` and is used only on Node 22.
 - **Breaking change: `expoConfig` moved to `@mathbreder/eslint-config/expo`.** It is no longer part of `eslintConfigs`, and the main entry no longer loads `eslint-config-expo`, so projects without Expo do not need it. The migration is described in [Migrating `expoConfig`](#migrating-expoconfig). The package version is not changed by this update; the release that ships it sets the version.
 - **Behavior changes in this update:**
   - `react-hooks/component-hook-factories` is deprecated in `eslint-plugin-react-hooks` 7.1.1 and no longer part of `recommended`. It is not re-added.
@@ -49,6 +60,7 @@ Recommended for development of this repository: Node.js 22, pnpm 10.28, ESLint 9
   1. `eslintConfigs.expoConfig` moved to `@mathbreder/eslint-config/expo`. See [Migrating `expoConfig`](#migrating-expoconfig).
   2. The types of `TsupPlugin.esbuildOptions` and of the tsup helpers use a structural subset of esbuild's `BuildOptions` instead of the esbuild type. See [Known conflicts](#known-conflicts).
   3. `import/no-cycle` reports cycles between TypeScript files, which it did not before. Projects with existing TypeScript cycles get new warnings. See [Known conflicts](#known-conflicts).
+  4. Node.js support changed: `engines` is `^20.19.0 || ^22.13.0 || >=24.0.0`. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are no longer supported. See [Node.js support](#nodejs-support).
   The release that ships these changes sets the version, following semantic versioning.
 
 ### Installation
@@ -81,7 +93,7 @@ import { eslintConfigs, getEslintImportConfig } from '@mathbreder/eslint-config'
 const { eslintConfigs, getEslintImportConfig } = require('@mathbreder/eslint-config');
 ```
 
-CommonJS works only where `require(esm)` is stable: Node 20.19 and newer, 22.12 and newer, and 23 and newer. On Node 18 and on 20.9 to 20.18, use ESM.
+Both ESM and CommonJS work on every supported Node version (see [Requirements](#requirements)). The CommonJS entry depends on `require(esm)`, which is stable on the supported versions.
 
 The package exports `eslintConfigs` (presets) and `getEslintImportConfig` (import rules). Type definitions are provided for both entries.
 
@@ -138,7 +150,7 @@ pnpm add -D eslint-config-expo@^58.0.4
 Two points to check when you migrate:
 
 - `eslintConfigs.expoConfig` is now `undefined`. Accessing it does not throw, so a missing import shows up as a config without Expo rules. If a file stops reporting Expo rules after the update, check the import first.
-- CommonJS projects use `require('@mathbreder/eslint-config/expo')` with the same shape. The subpath follows the same Node rules as the main entry: CommonJS needs Node 20.19+, 22.12+ or 23+.
+- CommonJS projects use `require('@mathbreder/eslint-config/expo')` with the same shape. The subpath follows the same Node rules as the main entry.
 
 ### Composition and plugin collisions
 
@@ -446,7 +458,7 @@ The consumer tests install the package the way a project does, in temporary dire
 There are two ways to run them:
 
 - `pnpm run test:consumers` builds and packs the package, then runs every consumer on the current Node version. Use it during development.
-- `node tests/consumers/run.mjs --tarball <file.tgz>` installs an existing tarball without building it. The CI consumers job uses this command, so Node 18 jobs never run `tsup`.
+- `node tests/consumers/run.mjs --tarball <file.tgz>` installs an existing tarball without building it. The CI consumers job uses this command, so consumer jobs never run `tsup`. Before installing anything, the harness checks that the pnpm executing the installs runs on the same Node version as the harness, and aborts otherwise. Failures print the command, the Node and pnpm versions, the exit code and the full output.
 
 A consumer whose framework needs a newer Node version than the current one is reported as `SKIP` with its reason. A skip is not a pass, and the summary line counts skipped consumers separately.
 
@@ -468,7 +480,7 @@ These projects are independent fixtures that behave like consumers. They do not 
 The workflow `.github/workflows/npm-publish.yml` has three jobs, and they separate the build from the consumer tests:
 
 - **`build` (Node 22):** `pnpm install --frozen-lockfile`, build, lint, unit tests, `pnpm pack`, and `pnpm publish --dry-run`. It uploads the tarball as the `package-tarball` artifact. The build tooling (`tsup` 9) runs only here.
-- **`consumers` (matrix):** downloads that exact tarball and runs `node tests/consumers/run.mjs --tarball` on Node 18.18.2, 18.20.8, 20.9.0, 20.19.0, 22, 24 and 26. These jobs install no repository dependencies and do not run `tsup`, so they check what a consumer installs.
+- **`consumers` (matrix):** downloads that exact tarball and runs `node tests/consumers/run.mjs --tarball` on Node 20.19.0, 22.13.0, 22 (latest), 24 and 26. These jobs install no repository dependencies and do not run `tsup`, so they check what a consumer installs.
 - **`publish-npm`:** runs only when a release is created, after `build` and `consumers` pass. It publishes the same tarball that was tested, with `pnpm publish` and the `npm_token` repository secret.
 
 The package is published with `publishConfig.access: public`, because it is scoped (`@mathbreder/...`). Before a release, run `pnpm run build && pnpm pack` and inspect the tarball, or run `pnpm run test:consumers`.
