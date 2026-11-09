@@ -8,6 +8,32 @@ import globals from 'globals';
 const { configs: reactHooksConfigs } = reactHooks;
 
 /**
+ * Generic link texts for `jsx-a11y/anchor-ambiguous-text`. The option replaces the
+ * plugin defaults, so they are repeated here first: `click here`, `here`, `link`,
+ * `a link` and `learn more`. The plugin compares the normalized text (lowercase,
+ * trimmed, collapsed spaces, and the punctuation `,.?¿!‽¡;:` removed), so case,
+ * spacing and that punctuation do not need separate entries.
+ */
+const AMBIGUOUS_LINK_WORDS = [
+  'click here',
+  'here',
+  'link',
+  'a link',
+  'learn more',
+  'clique aqui',
+  'aqui',
+  'clique',
+  'um link',
+  'saiba mais',
+  'leia mais',
+  'veja mais',
+  'mais',
+  'read more',
+  'more',
+  'click',
+];
+
+/**
  * React/Next.js specific ESLint configuration
  * Includes: react, react-hooks, jsx rules, no-inline-styles
  */
@@ -126,6 +152,7 @@ export const reactNextConfig = defineConfig([
     files: [ '**/*.{jsx,tsx}' ],
     rules: {
       'jsx-a11y/no-noninteractive-element-interactions': 'off',
+      'jsx-a11y/anchor-ambiguous-text': [ 'warn', { words: AMBIGUOUS_LINK_WORDS } ],
     },
   },
 ]);

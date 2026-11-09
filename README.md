@@ -65,7 +65,7 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
   6. When `project` is omitted, the TypeScript resolver uses the `tsconfig.json` of the current working directory, as documented in the options table. Before, it looked for a `tsconfig.json` next to the package build, which projects did not have.
   7. Node.js support changed: `engines` is `^20.19.0 || ^22.13.0 || >=24.0.0`. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are no longer supported. See [Node.js support](#nodejs-support).
   8. Eight rules are now `error`: `array-bracket-spacing`, `arrow-body-style` (core rule, `as-needed`), `arrow-parens`, `arrow-spacing`, `comma-style`, `computed-property-spacing`, `eol-last` and `function-call-spacing`. Projects that use the presets may see new lint errors, most of them fixable by autofix. See [Rule review, batch 1](#rule-review-batch-1).
-  9. Six more Stylistic rules are now `error`: `function-call-argument-newline`, `function-paren-newline`, `generator-star-spacing`, `key-spacing`, `keyword-spacing` and `max-statements-per-line`. Projects that use the presets may see new lint errors. See [Rule review, batch 2](#rule-review-batch-2).
+  9. Six more Stylistic rules are now `error`: `function-call-argument-newline`, `function-paren-newline`, `generator-star-spacing`, `key-spacing`, `keyword-spacing` and `max-statements-per-line`. Projects that use the presets may see new lint errors. `jsx-a11y/anchor-ambiguous-text` is now `warn` in JSX and TSX, with a list of generic link texts. See [Rule review, batch 2](#rule-review-batch-2).
   Version 0.1.0 is the first release with these changes. The `0.x` series allows breaking changes in a minor version.
 
 ### Installation
@@ -318,7 +318,7 @@ This batch reviewed 21 rules. The status below is the effective configuration, c
 | `import/no-relative-parent-imports` | none | not configured | absent | absent | Kept off. Relative imports to parent directories remain allowed. |
 | `indent` | `@stylistic/indent` | `baseConfig` | `error`, 2 | `error`, 2 | Preserved with the same options. |
 | `indent-legacy` | none | not configured | absent | absent | Removed from ESLint. `@stylistic/indent` covers it. |
-| `jsx-a11y/anchor-ambiguous-text` | none | `reactNextConfig` (`off`) | off | off | Kept off. Possible future improvement for link text in Portuguese. |
+| `jsx-a11y/anchor-ambiguous-text` | `jsx-a11y` plugin, option `words` | `reactNextConfig` (`.jsx` and `.tsx` only) | off | `warn`, with a list of generic link texts in Portuguese and English | Enabled for JSX and TSX only, not in `baseConfig`. The list keeps the plugin defaults, because `words` replaces them. See the note below. |
 | `jsx-a11y/control-has-associated-label` | none | `reactNextConfig` (`off`) | off | off | Kept off. Not enabled by itself. |
 | `jsx-a11y/label-has-for` | none | `reactNextConfig` (`off`) | off | off | Kept off. `jsx-a11y/label-has-associated-control` stays `error`. |
 | `jsx-quotes` | `@stylistic/jsx-quotes` | `reactNextConfig` (`.jsx` and `.tsx` only) | `prefer-double` | `prefer-double` | Preserved. Only in JSX files. |
@@ -334,6 +334,7 @@ Notes on the decisions:
 - **Preserved (3 rules):** `indent`, `linebreak-style` and `jsx-quotes`, with the same options as before.
 - **Kept off or dispensed:** the removed rules `generator-star` and `indent-legacy`, `i18next/no-literal-string`, the Expo rules `import/default` and `import/named`, the rules left off by decision, and the React rules that the React preset already sets to `off`.
 - **Autofix:** the package source had one violation, from `function-paren-newline`, fixed by autofix in `override-swc.ts`. No other rule in this batch produced violations in the package source.
+- **`jsx-a11y/anchor-ambiguous-text`:** the React preset sets `warn` for `.jsx` and `.tsx` files, with this list: the plugin defaults (`click here`, `here`, `link`, `a link`, `learn more`), then the Portuguese texts `clique aqui`, `aqui`, `clique`, `um link`, `saiba mais`, `leia mais`, `veja mais` and `mais`, then the English texts `read more`, `more` and `click`. The plugin compares the text in lowercase, trimmed, with collapsed spaces and without the punctuation `,.?¿!‽¡;:`, so case and spacing variations are covered without extra entries. Other punctuation, such as `…` or `-`, is not removed by the plugin, so `clique aqui…` is not reported. Descriptive text and descriptive `aria-label` values are not reported. This list was defined from common generic link texts; it should be confirmed for your projects before publication.
 - **Known conflict, `max-statements-per-line` and `brace-style`:** `brace-style` with `allowSingleLine: true` accepts `if (a) { b(); }`. `max-statements-per-line` with `max: 1` counts the `if` and the inner `b();` as two statements on the same line, and rejects it. Neither rule has an autofix that resolves it, so the conflict is kept and covered by tests as documented behavior. A possible fix is `ignoredNodes: ['IfStatement']` on `max-statements-per-line`. It accepts the single-line form but changes what the rule measures, so it needs a decision before it is applied.
 
 ### TypeScript files
