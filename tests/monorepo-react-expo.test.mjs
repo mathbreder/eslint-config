@@ -6,6 +6,7 @@ import { ESLint } from 'eslint';
 
 import { eslintConfigs, getEslintImportConfig } from '../dist/index.js';
 import { root } from './helpers.mjs';
+import { expoConfig } from '@mathbreder/eslint-config/expo';
 
 const monorepo = path.join(root, 'tests/fixtures/monorepo');
 const project = (name) => {
@@ -60,12 +61,12 @@ test('escopos de arquivo não permitem duas instâncias diferentes do mesmo plug
 
 test('react e Expo 58 compõem nesta instalação porque compartilham a instância de react-hooks', () => {
   const reactHooks = eslintConfigs.reactNextConfig.find((cfg) => cfg.plugins?.['react-hooks'])?.plugins['react-hooks'];
-  const expoHooks = eslintConfigs.expoConfig.find((cfg) => cfg.plugins?.['react-hooks'])?.plugins['react-hooks'];
+  const expoHooks = expoConfig.find((cfg) => cfg.plugins?.['react-hooks'])?.plugins['react-hooks'];
   assert.equal(reactHooks, expoHooks);
   assert.doesNotThrow(() => eslintConfigs.defineConfig([
     ...eslintConfigs.baseConfig,
     ...eslintConfigs.reactNextConfig,
-    ...eslintConfigs.expoConfig,
+    ...expoConfig,
   ]));
 });
 
@@ -73,7 +74,7 @@ test('expoConfig com getEslintImportConfig colide no plugin import (limitação 
   assert.throws(
     () => eslintConfigs.defineConfig([
       ...eslintConfigs.baseConfig,
-      ...eslintConfigs.expoConfig,
+      ...expoConfig,
       ...getEslintImportConfig(),
     ]),
     /Plugin "import" foi registrado com implementações diferentes/,

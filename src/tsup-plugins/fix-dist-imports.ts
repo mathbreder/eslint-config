@@ -17,12 +17,21 @@ const addJsExt = (code: string, baseDir: string) =>
     return `${p1}${spec}.js${p3}`;
   });
 
+const REQUIRE_REL = /(require\(\s*['"])(\.{1,2}\/[^'"]+)(['"]\s*\))/g;
+
+const addCjsExt = (code: string, baseDir: string) =>
+  code.replace(REQUIRE_REL, (_m: string, p1: string, spec: string, p3: string) => {
+    if (/\.(mjs|cjs|js|json|node)$/.test(spec)) return `${p1}${spec.replace(/\.js$/, '.cjs')}${p3}`;
+    if (fs.existsSync(path.join(baseDir, spec, 'index.cjs'))) return `${p1}${spec}/index.cjs${p3}`;
+    return `${p1}${spec}.cjs${p3}`;
+  });
+
 const buildEnd: BuildEnd = ({ writtenFiles }) => {
   const files = writtenFiles.filter((f) => !f.name.endsWith('.map'));
   for (const f of files) {
     const code = fs.readFileSync(f.name, 'utf8');
     const outDir = path.dirname(f.name);
-    const fixed = addJsExt(code, outDir);
+    const fixed = f.name.endsWith('.cjs') ? addCjsExt(code, outDir) : addJsExt(code, outDir);
     if (fixed !== code) fs.writeFileSync(f.name, fixed, 'utf8');
   }
 };

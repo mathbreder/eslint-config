@@ -18,14 +18,41 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  verify:
-    name: Verify (Node ${{ matrix.node-version }})
+  build:
+    name: Build and verify (Node 22)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm run lint
+      - run: pnpm test
+      - run: pnpm pack --pack-destination tarball
+      - run: pnpm publish --dry-run --no-git-checks
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package-tarball
+          path: tarball/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  consumers:
+    name: Consumers (Node ${{ matrix.node-version }})
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        node-version: [22, 24, 26]
+        node-version: ['18.18.2', '18.20.8', '20.9.0', '20.19.0', '22', '24', '26']
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -34,33 +61,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      - run: pnpm run lint
-      - run: pnpm test
-      - run: pnpm run test:consumers
-      - run: pnpm publish --dry-run --no-git-checks
+      - uses: actions/download-artifact@v4
+        with:
+          name: package-tarball
+          path: tarball
+      - run: node tests/consumers/run.mjs --tarball "$(ls tarball/*.tgz)"
 
   publish-npm:
     name: Publish to npm
     if: github.event_name == 'release'
-    needs: verify
+    needs: [build, consumers]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: https://registry.npmjs.org/
       - uses: pnpm/action-setup@v4
         with:
           version: 10.28.0
-      - uses: actions/setup-node@v4
+      - uses: actions/download-artifact@v4
         with:
-          node-version: 24
-          registry-url: https://registry.npmjs.org/
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm publish --no-git-checks
+          name: package-tarball
+          path: tarball
+      - run: pnpm publish "$(ls tarball/*.tgz)" --no-git-checks --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.npm_token }}

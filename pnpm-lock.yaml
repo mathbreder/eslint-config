@@ -63,8 +63,8 @@ importers:
         specifier: ^17.23.2
         version: 17.23.2(eslint@9.39.5)(typescript@6.0.3)
       eslint-plugin-perfectionist:
-        specifier: ^5.13.0
-        version: 5.13.0(eslint@9.39.5)(typescript@6.0.3)
+        specifier: ^4.15.0
+        version: 4.15.0(eslint@9.39.5)(typescript@6.0.3)
       eslint-plugin-prettier:
         specifier: 5.5.7
         version: 5.5.7(eslint-config-prettier@10.1.8(eslint@9.39.5))(eslint@9.39.5)(prettier@3.9.10)
@@ -1243,14 +1243,11 @@ packages:
     peerDependencies:
       eslint: '>=8.23.0'
 
-  eslint-plugin-perfectionist@5.13.0:
-    resolution: {integrity: sha512-kPlqE2Kdh0njsad9S9xL/xnq+NNVUsga/uS3yf6axE0RddACM3Q+idJyethC7R+C9b73+NRhAWvKyXPrkl0nFA==}
-    engines: {node: ^20.0.0 || >=22.0.0}
+  eslint-plugin-perfectionist@4.15.0:
+    resolution: {integrity: sha512-pC7PgoXyDnEXe14xvRUhBII8A3zRgggKqJFx2a82fjrItDs1BSI7zdZnQtM2yQvcyod6/ujmzb7ejKPx8lZTnw==}
+    engines: {node: ^18.0.0 || >=20.0.0}
     peerDependencies:
-      eslint: ^8.45.0 || ^9.0.0 || ^10.0.0
-    peerDependenciesMeta:
-      eslint:
-        optional: true
+      eslint: '>=8.45.0'
 
   eslint-plugin-prettier@5.5.7:
     resolution: {integrity: sha512-WjHyn3GrFd+ZR0rzsLiM4zJZ35PZMOE0SUIxzGmnWNG0126yNfJKJzObmmkYDwHJfGlkz3PSlzyG9ez/LJntwg==}
@@ -3409,7 +3406,7 @@ snapshots:
       get-tsconfig: 4.13.1
       is-bun-module: 2.0.0
       stable-hash: 0.0.5
-      tinyglobby: 0.2.15
+      tinyglobby: 0.2.17
       unrs-resolver: 1.11.1
     optionalDependencies:
       eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.72.1(eslint@9.39.5)(typescript@6.0.3))(eslint-import-resolver-typescript@4.4.5)(eslint@9.39.5)
@@ -3561,13 +3558,12 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  eslint-plugin-perfectionist@5.13.0(eslint@9.39.5)(typescript@6.0.3):
+  eslint-plugin-perfectionist@4.15.0(eslint@9.39.5)(typescript@6.0.3):
     dependencies:
       '@typescript-eslint/types': 8.72.1
       '@typescript-eslint/utils': 8.72.1(eslint@9.39.5)(typescript@6.0.3)
-      natural-orderby: 5.0.0
-    optionalDependencies:
       eslint: 9.39.5
+      natural-orderby: 5.0.0
     transitivePeerDependencies:
       - supports-color
       - typescript

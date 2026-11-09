@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { eslintConfigs } from '../dist/index.js';
+import { expoConfig } from '@mathbreder/eslint-config/expo';
 
-const { baseConfig, reactNextConfig, expoConfig, typeCheckedConfig, defineConfig } = eslintConfigs;
+const { baseConfig, reactNextConfig, typeCheckedConfig, defineConfig } = eslintConfigs;
 
 const pluginRefs = (configs) => configs.flatMap((cfg) => Object.entries(cfg.plugins ?? {}));
 

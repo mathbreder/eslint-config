@@ -9,23 +9,37 @@
 
 ### Requirements
 
-- Node.js `^22.18.0 || ^24.11.0 || >=26.0.0` (declared in `engines`). CI runs Node 22, 24 and 26. Node 18 and 20 are no longer supported.
+Node.js has two different requirements: the one for consumers, which this package declares in `engines`, and the one for development in this repository.
+
+- **Consumers:** Node.js `^18.18.0 || ^20.9.0 || >=22.0.0`. The requirement depends on the module format:
+  - **ESM** (`import`): Node 18.18+, 20.9+ and 22+. Use `import` on Node 18.
+  - **CommonJS** (`require`): Node 20.19+, 22.12+ and 23+. The CommonJS entry loads `@stylistic/eslint-plugin` 5.10, which is ESM-only, through `require(esm)`. On Node 18 and on 20.9 to 20.18, `require()` fails with `ERR_REQUIRE_ESM`.
+- **Development (this repository):** Node.js 22. Build, lint, unit tests and packing run on Node 22, because `tsup` 9 requires Node `^22.18`.
+
+Framework requirements, which apply only when you use that preset:
+
+- `expoConfig` (from `@mathbreder/eslint-config/expo`): `eslint-config-expo` 58 depends on `eslint-plugin-expo` 1.2.1, which requires Node `^22.13 || ^24.3 || ^26 || >=27`. Node 18, 20, 23 and 25 are not supported by this preset.
+- `nextConfig` (from `@mathbreder/eslint-config/next`): `@next/eslint-plugin-next` declares no Node engine. Next.js 16 applications, which are the projects being linted, require Node 20.9 or newer.
+- `viteReactRefreshConfig`: no requirement beyond the package's own.
+
+Other requirements:
+
 - ESLint 9.35 or newer, flat config only. 9.35 is the minimum because of the `preserve-caught-error` rule. See [Compatibility policy](#compatibility-policy) for the ESLint 9 line.
 - TypeScript `>=4.8.4 <6.1.0` when you use TypeScript. This is the range supported by `typescript-eslint` 8.72.
-- `eslint-config-expo` `^58.0.4` when you use `expoConfig`. Expo 10 is no longer supported by this package version.
-- `@next/eslint-plugin-next` `^16.4.5` when you use `nextConfig`.
+- `eslint-config-expo` `^58.0.4` (optional peer) when you use `expoConfig`. Expo 10 is no longer supported by this package version.
+- `@next/eslint-plugin-next` `^16.4.5` (optional peer) when you use `nextConfig`.
+- `eslint-plugin-react-refresh` (optional peer) only when you use `viteReactRefreshConfig`.
 
-Recommended for development of this repository: Node.js 24, pnpm 10.28, ESLint 9.39.5, TypeScript 6.0.3, `typescript-eslint` 8.72.1 and `eslint-config-expo` 58.0.4.
-- `eslint-plugin-react-refresh` only when you use `viteReactRefreshConfig`.
-- `@next/eslint-plugin-next` only when you use `nextConfig` (the package pins 16.0.1, the version matching Next.js 16.0.1).
+Recommended for development of this repository: Node.js 22, pnpm 10.28, ESLint 9.39.5, TypeScript 6.0.3, `typescript-eslint` 8.72.1 and `eslint-config-expo` 58.0.4.
 
 ### Compatibility policy
 
 - **ESLint 9.39.5 (transitional):** the npm registry marks this version as deprecated, with the notice that it is no longer supported. It is kept on purpose: ESLint 10.14 is available, but `eslint-plugin-react@7.37.5`, `eslint-plugin-jsx-a11y@6.10.2` and `eslint-plugin-import@2.32.0` do not declare ESLint 10 support. The migration to ESLint 10 is pending until those plugins declare it.
 - **TypeScript:** development uses TypeScript 6.0.3. The supported range for consumers is `>=4.8.4 <6.1.0`; TypeScript 7 is not supported. `tsconfig.json` sets `ignoreDeprecations: "6.0"` because the declaration bundler still emits `baseUrl`, which TypeScript 7 removes. Revisit this before a TypeScript 7 upgrade.
-- **Expo:** `expoConfig` follows `eslint-config-expo` 58, which uses `react-hooks` 7 like the React preset. Projects on Expo 10 must stay on the previous package version. Combining `expoConfig` with `getEslintImportConfig` in one config array fails with a clear message, because Expo registers its own `eslint-plugin-import` instance; see [Known conflicts](#known-conflicts).
+- **Expo:** `expoConfig` is published only at `@mathbreder/eslint-config/expo`. It follows `eslint-config-expo` 58, which uses `react-hooks` 7 like the React preset, and its Node requirement comes from `eslint-plugin-expo` (see [Requirements](#requirements)). Projects on Expo 10 must stay on the previous package version. Combining `expoConfig` with `getEslintImportConfig` in one config array fails with a clear message, because Expo registers its own `eslint-plugin-import` instance; see [Known conflicts](#known-conflicts).
 - **Next.js:** `nextConfig` follows the `recommended` set of `@next/eslint-plugin-next` 16.4.5. That version adds `no-location-assign-relative-destination` as `warn`, which is inherited and reported in the Next.js section.
-- **Node.js:** unit tests were run on Node 22.21, 24.22 and 26.13. CI runs 22, 24 and 26. `tsup` 9 requires Node `^22.18`.
+- **Node.js:** consumer installs are checked with `pnpm install --engine-strict` on Node 18.18.2, 18.20.8, 20.9.0, 20.19.0, 22, 24 and 26. The consumer tests (see [Consumer tests](#consumer-tests)) run on each of them, and skip only the consumers whose framework requires a newer Node. Development runs on Node 22. `tsup` 9 requires Node `^22.18` and is used only on Node 22.
+- **Breaking change: `expoConfig` moved to `@mathbreder/eslint-config/expo`.** It is no longer part of `eslintConfigs`, and the main entry no longer loads `eslint-config-expo`, so projects without Expo do not need it. The migration is described in [Migrating `expoConfig`](#migrating-expoconfig). The package version is not changed by this update; the release that ships it sets the version.
 - **Behavior changes in this update:**
   - `react-hooks/component-hook-factories` is deprecated in `eslint-plugin-react-hooks` 7.1.1 and no longer part of `recommended`. It is not re-added.
   - `expoConfig` now includes the `react-hooks` 7 rules, and turns `react-hooks/static-components` off in `.jsx` and `.tsx` files, as the React preset does.
@@ -34,11 +48,20 @@ Recommended for development of this repository: Node.js 24, pnpm 10.28, ESLint 9
 
 ### Installation
 
-Install the package together with its required peer dependencies (the ones listed in `package.json` without `optional`):
-
 ```
 pnpm add -D @mathbreder/eslint-config
 ```
+
+pnpm installs the required peer dependencies (the ones in `package.json` without `optional`) automatically. Install an optional peer only when you import the subpath that needs it:
+
+| Peer | Install when |
+|---|---|
+| `eslint-config-expo` `^58.0.4` | you import `@mathbreder/eslint-config/expo` |
+| `@next/eslint-plugin-next` `^16.4.5` | you import `@mathbreder/eslint-config/next` |
+| `eslint-plugin-react-refresh` `^0.5.7` | you import `@mathbreder/eslint-config/react-refresh-vite` |
+| `typescript` `>=4.8.4 <6.1.0` | you use TypeScript |
+
+Use `--engine-strict` in CI and in new projects, so a Node version outside the supported range fails the install instead of being ignored.
 
 The published package contains only `dist/`, `README.md`, `LICENSE` and `package.json`. Both ESM and CommonJS entries are available:
 
@@ -51,6 +74,8 @@ import { eslintConfigs, getEslintImportConfig } from '@mathbreder/eslint-config'
 // CommonJS
 const { eslintConfigs, getEslintImportConfig } = require('@mathbreder/eslint-config');
 ```
+
+CommonJS works only where `require(esm)` is stable: Node 20.19 and newer, 22.12 and newer, and 23 and newer. On Node 18 and on 20.9 to 20.18, use ESM.
 
 The package exports `eslintConfigs` (presets) and `getEslintImportConfig` (import rules). Type definitions are provided for both entries.
 
@@ -75,13 +100,39 @@ Presets available in `eslintConfigs`:
 
 - `baseConfig`: TypeScript, stylistic and perfectionist rules, plus general ESLint rules.
 - `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects.
-- `expoConfig`: Expo defaults, from `eslint-config-expo` 58. It uses `react-hooks` 7 like `reactNextConfig`, so both can be combined in one config array in an installation where they resolve to the same plugin instance. The package checks this when you call `defineConfig` and fails with a clear message otherwise. See [React and Expo in one monorepo](#react-and-expo-in-one-monorepo).
 - `typeCheckedConfig`: opt-in rules that need type information. See [Type-checked rules](#type-checked-rules-opt-in).
 - `nextConfig`: opt-in Next.js rules, from `@mathbreder/eslint-config/next`. See [Next.js](#nextjs).
 
-Opt-in preset, not included in `eslintConfigs`:
+Opt-in presets, not included in `eslintConfigs`:
 
+- `expoConfig`, from `@mathbreder/eslint-config/expo`: Expo defaults, from `eslint-config-expo` 58. It uses `react-hooks` 7 like `reactNextConfig`, so both can be combined in one config array in an installation where they resolve to the same plugin instance. The package checks this when you call `defineConfig` and fails with a clear message otherwise. See [React and Expo in one monorepo](#react-and-expo-in-one-monorepo) and [Migrating `expoConfig`](#migrating-expoconfig).
 - `viteReactRefreshConfig`, from `@mathbreder/eslint-config/react-refresh-vite`: see [React Refresh for Vite](#react-refresh-for-vite).
+
+### Migrating `expoConfig`
+
+Before this update, `expoConfig` came from the main entry. Now it comes from its own subpath, so the main entry no longer loads `eslint-config-expo`:
+
+```diff
+  import { eslintConfigs } from '@mathbreder/eslint-config';
++ import { expoConfig } from '@mathbreder/eslint-config/expo';
+
+  export default eslintConfigs.defineConfig([
+    ...eslintConfigs.baseConfig,
+-   ...eslintConfigs.expoConfig,
++   ...expoConfig,
+  ]);
+```
+
+Install the Expo peer in the projects that use it:
+
+```
+pnpm add -D eslint-config-expo@^58.0.4
+```
+
+Two points to check when you migrate:
+
+- `eslintConfigs.expoConfig` is now `undefined`. Accessing it does not throw, so a missing import shows up as a config without Expo rules. If a file stops reporting Expo rules after the update, check the import first.
+- CommonJS projects use `require('@mathbreder/eslint-config/expo')` with the same shape. The subpath follows the same Node rules as the main entry: CommonJS needs Node 20.19+, 22.12+ or 23+.
 
 ### Composition and plugin collisions
 
@@ -370,7 +421,7 @@ The path is resolved from the directory where ESLint runs (`process.cwd()`), not
 - Malformed JSX indentation is reported by both `@stylistic/indent` and `react/jsx-indent`, so the same error appears twice. Both rules expect the same indentation, so there is no contradiction. This duplication is accepted.
 - `expoConfig` combined with `getEslintImportConfig` fails with `Plugin "import" foi registrado com implementações diferentes`. The cause is the lockfile: `eslint-plugin-import@2.32.0` appears as three pnpm instances, because `eslint-config-expo` 58 depends on `eslint-import-resolver-typescript` ^3.6, while this package uses 4.x, so the peer sets differ. This already happened before this update. The package does not force deduplication, since that could break other peers. Until it is resolved, Expo projects that need import rules should use a separate `eslint.config` with the Expo preset, or drop `getEslintImportConfig` for that project.
 - The main entry also exports the tsup helpers (`fixBuildImportsPlugin` and `overrideSwcPlugin`), whose type declarations reference `esbuild`. TypeScript consumers that do not have `esbuild` installed see a `Cannot find module 'esbuild'` error unless they use `skipLibCheck: true`. The JavaScript output does not import `esbuild`, so runtime use is not affected. Moving the tsup helpers to their own subpath would remove this, but it changes the import path, so it is left as a separate decision.
-- `@swc/core` and `eslint-config-expo` are required peer dependencies because the main entry loads every preset and the tsup helper. Projects that do not use Expo still install `eslint-config-expo`.
+- `@swc/core` is a required peer dependency, because the main entry exports the tsup helpers, which load it. `eslint-config-expo` is an optional peer: only projects that import `@mathbreder/eslint-config/expo` need it.
 
 ## Tests
 
@@ -378,31 +429,39 @@ The path is resolved from the directory where ESLint runs (`process.cwd()`), not
 pnpm test
 ```
 
-Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), the TypeScript native overrides and overloads, `no-require-imports` with `allow`, `import/order`, `import/no-unresolved` (including the `@/` alias), JSX indentation, `react/display-name`, React Hooks, the opt-in React Refresh preset, the type-checked preset (`no-floating-promises` on real files, across two `tsconfig.json` projects, and an out-of-project file), the quality rules and `no-alert` by preset, plugin composition (identity reuse, collisions, no mutation of presets), `.mjs` and `.cjs` handling, a React and Expo monorepo with one config per project, and the effective severities of inherited rules. The consumer tests are a separate command, described below.
+Runs `pnpm run build` and then the tests in `tests/`. The tests use the ESLint API against the built output. They cover the no-unused-vars options, stylistic indentation, the max function length, the recommended and TypeScript rules (valid and invalid examples in `.js` and `.ts`), the TypeScript native overrides and overloads, `no-require-imports` with `allow`, `import/order`, `import/no-unresolved` (including the `@/` alias), JSX indentation, `react/display-name`, React Hooks, the opt-in React Refresh preset, the type-checked preset (`no-floating-promises` on real files, across two `tsconfig.json` projects, and an out-of-project file), the quality rules and `no-alert` by preset, plugin composition (identity reuse, collisions, no mutation of presets), `.mjs` and `.cjs` handling, a React and Expo monorepo with one config per project, and the effective severities of inherited rules. `expo-subpath-migration.test.mjs` covers the Expo migration: `expoConfig` is absent from `eslintConfigs`, the `./expo` export resolves in ESM and CommonJS with the expected files, no module reachable from the main entry imports `eslint-config-expo`, and the peer is optional. The consumer tests are a separate command, described below.
 
 ## Consumer tests
 
-`pnpm run test:consumers` packs the package, installs the tarball and its required peer dependencies in temporary directories, and runs one verification per consumer under `tests/consumers/`:
+The consumer tests install the package the way a project does, in temporary directories, and run one verification per consumer under `tests/consumers/`. Each installation uses the required peer dependencies plus the optional peers of that consumer, and runs with `--engine-strict`.
 
-| Consumer | Checks |
-|---|---|
-| `node-esm` | `baseConfig`, `getEslintImportConfig`, and linting `.js` and `.mjs` |
-| `node-cjs` | `require()` of the main entry and of `react-refresh-vite`, and linting `.cjs` |
-| `typescript` | `typeCheckedConfig`, alias resolution, and the public type exports (`tsc`) |
-| `react` | `reactNextConfig`, rules of hooks, and `no-alert` for `.js` and `.tsx` |
-| `expo` | `expoConfig`, rules of hooks, and no `no-alert` |
-| `vite-react` | `viteReactRefreshConfig` imported from its subpath |
-| `monorepo` | React and Expo projects in one repository, each with its own config |
-| `next` | `nextConfig` from its subpath (ESM and CJS), with `no-html-link-for-pages` and `no-img-element` on a Next.js app |
+There are two ways to run them:
+
+- `pnpm run test:consumers` builds and packs the package, then runs every consumer on the current Node version. Use it during development.
+- `node tests/consumers/run.mjs --tarball <file.tgz>` installs an existing tarball without building it. The CI consumers job uses this command, so Node 18 jobs never run `tsup`.
+
+A consumer whose framework needs a newer Node version than the current one is reported as `SKIP` with its reason. A skip is not a pass, and the summary line counts skipped consumers separately.
+
+| Consumer | Node range | Checks |
+|---|---|---|
+| `node-esm` | all supported | `baseConfig`, `getEslintImportConfig`, and linting `.js` and `.mjs`. Also checks that `eslint-config-expo` is not installed and that the main entry does not expose `expoConfig` |
+| `node-cjs` | `^20.19.0 \|\| ^22.12.0 \|\| >=23.0.0` | `require()` of the main entry and of `react-refresh-vite`, and linting `.cjs` |
+| `typescript` | all supported | `typeCheckedConfig`, alias resolution, and the public type exports (`tsc`) |
+| `react` | all supported | `reactNextConfig`, rules of hooks, and `no-alert` for `.js` and `.tsx` |
+| `expo` | `^22.13.0 \|\| ^24.3.0 \|\| ^26.0.0 \|\| >=27.0.0` | `expoConfig` from `@mathbreder/eslint-config/expo`, rules of hooks, and no `no-alert` |
+| `vite-react` | all supported | `viteReactRefreshConfig` imported from its subpath |
+| `monorepo` | `^22.13.0 \|\| ^24.3.0 \|\| ^26.0.0 \|\| >=27.0.0` | React and Expo projects in one repository, each with its own config |
+| `next` | all supported | `nextConfig` from its subpath (ESM and CJS), with `no-html-link-for-pages` and `no-img-element` on a Next.js app |
 
 These projects are independent fixtures that behave like consumers. They do not replace validation in real production applications.
 
 ## Publishing and CI
 
-The workflow `.github/workflows/npm-publish.yml` uses pnpm with `pnpm install --frozen-lockfile`:
+The workflow `.github/workflows/npm-publish.yml` has three jobs, and they separate the build from the consumer tests:
 
-- **Pull requests, and pushes to `main`:** the `verify` job runs on Node 22, 24 and 26. It builds, runs lint, the unit tests, the consumer tests, and `pnpm publish --dry-run`.
-- **Release created:** the `publish-npm` job runs only after `verify` succeeds, and publishes with `pnpm publish` using the `npm_token` repository secret.
+- **`build` (Node 22):** `pnpm install --frozen-lockfile`, build, lint, unit tests, `pnpm pack`, and `pnpm publish --dry-run`. It uploads the tarball as the `package-tarball` artifact. The build tooling (`tsup` 9) runs only here.
+- **`consumers` (matrix):** downloads that exact tarball and runs `node tests/consumers/run.mjs --tarball` on Node 18.18.2, 18.20.8, 20.9.0, 20.19.0, 22, 24 and 26. These jobs install no repository dependencies and do not run `tsup`, so they check what a consumer installs.
+- **`publish-npm`:** runs only when a release is created, after `build` and `consumers` pass. It publishes the same tarball that was tested, with `pnpm publish` and the `npm_token` repository secret.
 
 The package is published with `publishConfig.access: public`, because it is scoped (`@mathbreder/...`). Before a release, run `pnpm run build && pnpm pack` and inspect the tarball, or run `pnpm run test:consumers`.
 
