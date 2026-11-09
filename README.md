@@ -60,7 +60,10 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
   1. `eslintConfigs.expoConfig` moved to `@mathbreder/eslint-config/expo`. See [Migrating `expoConfig`](#migrating-expoconfig).
   2. The types of `TsupPlugin.esbuildOptions` and of the tsup helpers use a structural subset of esbuild's `BuildOptions` instead of the esbuild type. See [Known conflicts](#known-conflicts).
   3. `import/no-cycle` reports cycles between TypeScript files, which it did not before. Projects with existing TypeScript cycles get new warnings. See [Known conflicts](#known-conflicts).
-  4. Node.js support changed: `engines` is `^20.19.0 || ^22.13.0 || >=24.0.0`. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are no longer supported. See [Node.js support](#nodejs-support).
+  4. The default `pathGroups` of `getEslintImportConfig` no longer include the fixed aliases `@web/**`, `@mobile/**`, `@api/**`, `@shared/**` and `@db`, which were classified as `internal`. Projects that rely on this classification must declare them in `pathGroups`. This can change the order of imports in existing projects. See [Migrating import options](#migrating-import-options).
+  5. `PathGroup.group` is required. It was optional before.
+  6. When `project` is omitted, the TypeScript resolver uses the `tsconfig.json` of the current working directory, as documented in the options table. Before, it looked for a `tsconfig.json` next to the package build, which projects did not have.
+  7. Node.js support changed: `engines` is `^20.19.0 || ^22.13.0 || >=24.0.0`. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are no longer supported. See [Node.js support](#nodejs-support).
   The release that ships these changes sets the version, following semantic versioning.
 
 ### Installation
@@ -209,6 +212,24 @@ Each package defines its own `"lint": "eslint ."` script. Running `eslint` from 
 `PathGroup` is `{ pattern: string; group: ImportGroup; position?: 'before' | 'after' }`.
 
 Aliases are not ignored by default: an alias declared in `tsconfig.json` is resolved, and an alias that does not exist is reported. Use `noUnresolvedIgnore` only for justified exceptions.
+
+#### Migrating import options
+
+Earlier versions classified these aliases as `internal` by default: `@web/**`, `@mobile/**`, `@api/**`, `@shared/**` and `@db`. This version does not, so the same import can move to another group. If your project imports these aliases and depends on that order, declare them explicitly:
+
+```js
+getEslintImportConfig({
+  pathGroups: [
+    { pattern: '@web/**', group: 'internal' },
+    { pattern: '@mobile/**', group: 'internal' },
+    { pattern: '@api/**', group: 'internal' },
+    { pattern: '@shared/**', group: 'internal' },
+    { pattern: '@db', group: 'internal' },
+  ],
+});
+```
+
+Run `pnpm exec eslint --fix` once after the change and review the reordered imports, because the order can change in existing code. Every `PathGroup` must now set `group`.
 
 ### Notable rules
 
