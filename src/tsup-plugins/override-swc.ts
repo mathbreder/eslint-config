@@ -63,7 +63,8 @@ const getCode = (swcOutput: swc.Output, sourcePath: string) => {
     map.sources = map.sources.map(
       (source) => path.isAbsolute(source)
         ? path.relative(path.dirname(sourcePath), source)
-        : source);
+        : source,
+    );
     returnData.contents += `//# sourceMappingURL=data:application/json;base64,${Buffer.from(JSON.stringify(map)).toString('base64')}`;
   }
   return returnData;

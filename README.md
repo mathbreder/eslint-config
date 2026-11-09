@@ -65,6 +65,7 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
   6. When `project` is omitted, the TypeScript resolver uses the `tsconfig.json` of the current working directory, as documented in the options table. Before, it looked for a `tsconfig.json` next to the package build, which projects did not have.
   7. Node.js support changed: `engines` is `^20.19.0 || ^22.13.0 || >=24.0.0`. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are no longer supported. See [Node.js support](#nodejs-support).
   8. Eight rules are now `error`: `array-bracket-spacing`, `arrow-body-style` (core rule, `as-needed`), `arrow-parens`, `arrow-spacing`, `comma-style`, `computed-property-spacing`, `eol-last` and `function-call-spacing`. Projects that use the presets may see new lint errors, most of them fixable by autofix. See [Rule review, batch 1](#rule-review-batch-1).
+  9. Six more Stylistic rules are now `error`: `function-call-argument-newline`, `function-paren-newline`, `generator-star-spacing`, `key-spacing`, `keyword-spacing` and `max-statements-per-line`. Projects that use the presets may see new lint errors. See [Rule review, batch 2](#rule-review-batch-2).
   Version 0.1.0 is the first release with these changes. The `0.x` series allows breaking changes in a minor version.
 
 ### Installation
@@ -298,6 +299,42 @@ Notes on the decisions:
 - **Added (8 rules):** `arrow-body-style`, `array-bracket-spacing`, `arrow-parens`, `arrow-spacing`, `comma-style`, `computed-property-spacing`, `eol-last` and `function-call-spacing`. They are `error` and they are absent from every preset before this batch. Autofix is available for all seven. The package source had 115 violations, all from `array-bracket-spacing` (108), `eol-last` (5) and `computed-property-spacing` (2), and they were fixed by autofix. `arrow-body-style` added 2 more, in `override-swc.ts`, also fixed by autofix. The total for this batch is 117 autofix changes. Projects that adopt the package will see these errors too, so they are a breaking change for lint results.
 - **Replaced `babel/*`:** `@babel/eslint-plugin` is not added. The three Stylistic rules above already enforce the same behavior, and they are active in every file extension.
 - **Off by decision:** `camelcase` is not global, because API, database and external object names may use other conventions. `class-methods-use-this` stays off, to avoid false positives in interfaces, inheritance and object-oriented code. `consistent-return` stays off. In TypeScript projects, the compiler option `noImplicitReturns` can enforce it, but this package does not assume that option in consumer projects and does not change their `tsconfig.json`.
+
+### Rule review, batch 2
+
+This batch reviewed 21 rules. The status below is the effective configuration, checked with `ESLint.calculateConfigForFile()` for `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts` and `.cts`, under `baseConfig` with the React, Expo and Next.js presets. The origin column says where each setting comes from: our `baseConfig`, a preset, an explicit `off` from a preset, or nothing (absent, which means off). Core ESLint names are deprecated when a Stylistic rule covers the same behavior, so the Stylistic names are used.
+
+| Rule | Modern equivalent | Origin | Before | After | Reason |
+|---|---|---|---|---|---|
+| `function-call-argument-newline` | `@stylistic/function-call-argument-newline` | `baseConfig` | absent | `error`, `consistent` | Arguments on one line, or one per line. |
+| `function-paren-newline` | `@stylistic/function-paren-newline` | `baseConfig` | absent | `error`, `multiline-arguments` | Multiline arguments need a line break after `(` and before `)`. |
+| `generator-star` | none | not configured | absent | absent | Removed from ESLint; `generator-star-spacing` covers it. |
+| `generator-star-spacing` | `@stylistic/generator-star-spacing` | `baseConfig` | absent | `error`, `after` | Writes `function* name()`. |
+| `i18next/no-literal-string` | none | not configured | absent | absent | Plugin not installed. Internationalization is the consumer's responsibility. |
+| `implicit-arrow-linebreak` | `@stylistic/implicit-arrow-linebreak` | not configured | absent | absent | Kept off. Arrow formatting is covered by `arrow-parens` and `arrow-spacing` from batch 1. |
+| `import/default` | none | `expoConfig` (`off`) | off | off | Not enabled globally. Expo's resolver setup and TypeScript imports would produce false positives. |
+| `import/named` | none | `expoConfig` (`off`) | off | off | Same as `import/default`. |
+| `import/no-anonymous-default-export` | none | not configured | absent | absent | Kept off. Anonymous default exports are not restricted globally. |
+| `import/no-relative-parent-imports` | none | not configured | absent | absent | Kept off. Relative imports to parent directories remain allowed. |
+| `indent` | `@stylistic/indent` | `baseConfig` | `error`, 2 | `error`, 2 | Preserved with the same options. |
+| `indent-legacy` | none | not configured | absent | absent | Removed from ESLint. `@stylistic/indent` covers it. |
+| `jsx-a11y/anchor-ambiguous-text` | none | `reactNextConfig` (`off`) | off | off | Kept off. Possible future improvement for link text in Portuguese. |
+| `jsx-a11y/control-has-associated-label` | none | `reactNextConfig` (`off`) | off | off | Kept off. Not enabled by itself. |
+| `jsx-a11y/label-has-for` | none | `reactNextConfig` (`off`) | off | off | Kept off. `jsx-a11y/label-has-associated-control` stays `error`. |
+| `jsx-quotes` | `@stylistic/jsx-quotes` | `reactNextConfig` (`.jsx` and `.tsx` only) | `prefer-double` | `prefer-double` | Preserved. Only in JSX files. |
+| `key-spacing` | `@stylistic/key-spacing` | `baseConfig` | absent | `error`, `{ beforeColon: false, afterColon: true }` | `key: value`. |
+| `keyword-spacing` | `@stylistic/keyword-spacing` | `baseConfig` | absent | `error`, `{ before: true, after: true }` | Space around keywords such as `if`, `else`, `try` and `catch`. |
+| `linebreak-style` | `@stylistic/linebreak-style` | `baseConfig` | `error`, `unix` | `error`, `unix` | Preserved. |
+| `lines-around-comment` | `@stylistic/lines-around-comment` | not configured | absent | absent | Kept off. Does not force blank lines around comments. |
+| `max-statements-per-line` | `@stylistic/max-statements-per-line` | `baseConfig` | absent | `error`, `{ max: 1 }` | One statement per line. Conflicts with `brace-style` in one case; see below. |
+
+Notes on the decisions:
+
+- **Added (6 rules):** `function-call-argument-newline`, `function-paren-newline`, `generator-star-spacing`, `key-spacing`, `keyword-spacing` and `max-statements-per-line`. They were absent from every preset, and only the Stylistic names are registered.
+- **Preserved (3 rules):** `indent`, `linebreak-style` and `jsx-quotes`, with the same options as before.
+- **Kept off or dispensed:** the removed rules `generator-star` and `indent-legacy`, `i18next/no-literal-string`, the Expo rules `import/default` and `import/named`, the rules left off by decision, and the React rules that the React preset already sets to `off`.
+- **Autofix:** the package source had one violation, from `function-paren-newline`, fixed by autofix in `override-swc.ts`. No other rule in this batch produced violations in the package source.
+- **Known conflict, `max-statements-per-line` and `brace-style`:** `brace-style` with `allowSingleLine: true` accepts `if (a) { b(); }`. `max-statements-per-line` with `max: 1` counts the `if` and the inner `b();` as two statements on the same line, and rejects it. Neither rule has an autofix that resolves it, so the conflict is kept and covered by tests as documented behavior. A possible fix is `ignoredNodes: ['IfStatement']` on `max-statements-per-line`. It accepts the single-line form but changes what the rule measures, so it needs a decision before it is applied.
 
 ### TypeScript files
 

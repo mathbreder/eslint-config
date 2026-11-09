@@ -205,6 +205,12 @@ export const baseConfig = defineConfig([
       '@stylistic/space-in-parens': [ 'error', 'never' ],
       '@stylistic/eol-last': [ 'error', 'always' ],
       '@stylistic/function-call-spacing': [ 'error', 'never' ],
+      '@stylistic/function-call-argument-newline': [ 'error', 'consistent' ],
+      '@stylistic/function-paren-newline': [ 'error', 'multiline-arguments' ],
+      '@stylistic/generator-star-spacing': [ 'error', 'after' ],
+      '@stylistic/key-spacing': [ 'error', { beforeColon: false, afterColon: true } ],
+      '@stylistic/keyword-spacing': [ 'error', { before: true, after: true } ],
+      '@stylistic/max-statements-per-line': [ 'error', { max: 1 } ],
 
       // Require descriptions for eslint directive comments
       'eslint-comments/require-description': [ 'error', { 'ignore': [] } ],
