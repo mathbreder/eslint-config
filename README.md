@@ -66,6 +66,7 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
   7. Node.js support changed: `engines` is `^20.19.0 || ^22.13.0 || >=24.0.0`. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are no longer supported. See [Node.js support](#nodejs-support).
   8. Eight rules are now `error`: `array-bracket-spacing`, `arrow-body-style` (core rule, `as-needed`), `arrow-parens`, `arrow-spacing`, `comma-style`, `computed-property-spacing`, `eol-last` and `function-call-spacing`. Projects that use the presets may see new lint errors, most of them fixable by autofix. See [Rule review, batch 1](#rule-review-batch-1).
   9. Six more Stylistic rules are now `error`: `function-call-argument-newline`, `function-paren-newline`, `generator-star-spacing`, `key-spacing`, `keyword-spacing` and `max-statements-per-line`. Projects that use the presets may see new lint errors. `jsx-a11y/anchor-ambiguous-text` is now `warn` in JSX and TSX, with a list of generic link texts. See [Rule review, batch 2](#rule-review-batch-2).
+  10. Batch 3 makes these rules `error`: `multiline-ternary`, `new-parens`, `no-floating-decimal`, `no-tabs`, `no-whitespace-before-property`, `semi-spacing`, `no-eval`, `no-implied-eval` and `no-throw-literal`. It makes `no-mixed-operators`, `no-use-before-define` and `no-useless-constructor` `warn`. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 3](#rule-review-batch-3).
   Version 0.1.0 is the first release with these changes. The `0.x` series allows breaking changes in a minor version.
 
 ### Installation
@@ -336,6 +337,48 @@ Notes on the decisions:
 - **Autofix:** the package source had one violation, from `function-paren-newline`, fixed by autofix in `override-swc.ts`. No other rule in this batch produced violations in the package source.
 - **`jsx-a11y/anchor-ambiguous-text`:** the React preset sets `warn` for `.jsx` and `.tsx` files, with this list: the plugin defaults (`click here`, `here`, `link`, `a link`, `learn more`), then the Portuguese texts `clique aqui`, `aqui`, `clique`, `um link`, `saiba mais`, `leia mais`, `veja mais` and `mais`, then the English texts `read more`, `more` and `click`. The plugin compares the text in lowercase, trimmed, with collapsed spaces and without the punctuation `,.?¿!‽¡;:`, so case and spacing variations are covered without extra entries. Other punctuation, such as `…` or `-`, is not removed by the plugin, so `clique aqui…` is not reported. Descriptive text and descriptive `aria-label` values are not reported. This list was defined from common generic link texts; it should be confirmed for your projects before publication.
 - **Known conflict, `max-statements-per-line` and `brace-style`:** `brace-style` with `allowSingleLine: true` accepts `if (a) { b(); }`. `max-statements-per-line` with `max: 1` counts the `if` and the inner `b();` as two statements on the same line, and rejects it. Neither rule has an autofix that resolves it, so the conflict is kept and covered by tests as documented behavior. A possible fix is `ignoredNodes: ['IfStatement']` on `max-statements-per-line`. It accepts the single-line form but changes what the rule measures, so it needs a decision before it is applied.
+
+### Rule review, batch 3
+
+This batch reviewed 25 rules. The table gives the effective configuration before and after, checked with `ESLint.calculateConfigForFile()` for `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts` and `.cts`, under `baseConfig`, the React, Expo and Next.js presets, and `typeCheckedConfig`. "Origin" says where the setting comes from: `baseConfig`, the TypeScript block of `baseConfig`, `typeCheckedConfig`, a preset, or nothing (absent). Stylistic names are used when they exist; core names are used when Stylistic has no equivalent.
+
+| Rule | Implementation | Origin | Before | After | Reason |
+|---|---|---|---|---|---|
+| `multiline-ternary` | `@stylistic/multiline-ternary` | `baseConfig` | absent | `error`, `always-multiline` | Multiline ternaries keep one line break per part. |
+| `new-parens` | `@stylistic/new-parens` | `baseConfig` | absent | `error`, `always` | `new Foo()`, with parentheses. |
+| `newline-per-chained-call` | `@stylistic/newline-per-chained-call` | not configured | absent | absent | Not enforced. Long chains on one line are allowed. |
+| `no-array-constructor` | `@typescript-eslint/no-array-constructor` (TS); core off in TS | `baseConfig` (TS block) | TS `error` | TS `error` | Preserved. |
+| `no-arrow-condition` | none | not available | absent | absent | Not in Stylistic or core. Covered by the batch 1 arrow rules. |
+| `no-comma-dangle` | `@stylistic/comma-dangle` | `baseConfig` | `error`, `always-multiline` | `error`, `always-multiline` | Replaced by the Stylistic rule approved in batch 1; not added. |
+| `no-confusing-arrow` | `@stylistic/no-confusing-arrow` | not configured | absent | absent | Not enabled in this batch. Batch 1 keeps `arrow-parens` and `arrow-spacing`. |
+| `no-empty-function` | `@typescript-eslint/no-empty-function` | `baseConfig` (TS block) | `warn`, allow `overrideMethods`, `decoratedFunctions` | same | Preserved. Test files keep their existing override. |
+| `no-eval` | `no-eval` (core) | `baseConfig` | absent | `error` | Blocks `eval`. Limitation: `window.eval(...)` is not reported by the core rule. |
+| `no-extra-parens` | `@stylistic/no-extra-parens` | not configured | absent | absent | Kept off, so useful parentheses stay. |
+| `no-floating-decimal` | `@stylistic/no-floating-decimal` | `baseConfig` | absent | `error` | `0.5`, not `.5`. |
+| `no-implied-eval` | `no-implied-eval` (core); `@typescript-eslint/no-implied-eval` in `typeCheckedConfig` | `baseConfig`, `typeCheckedConfig` | absent | `error` (core), TS `error` in typed files | Blocks strings passed to `setTimeout`/`setInterval`. The typed version needs type information, so the core rule stays in files without it. |
+| `no-mixed-operators` | `@stylistic/no-mixed-operators` | `baseConfig` | absent | `warn` | Warns on mixed operators; parentheses clarify. |
+| `no-mixed-spaces-and-tabs` | covered by `@stylistic/no-tabs` | `baseConfig` | absent | absent (covered) | `no-tabs` rejects any tab, so mixed indentation is rejected too. |
+| `no-multi-spaces` | `@stylistic/no-multi-spaces` | `baseConfig` | `error` | `error` | Preserved. |
+| `no-new-symbol` | replaced by `no-new-native-nonconstructor` | `@eslint/js` recommended | absent (core deprecated) | `error` (inherited) | The core rule is deprecated. The replacement is already active through the recommended preset. |
+| `no-reserved-keys` | none | not available | absent | absent | Removed; not in Stylistic or core. |
+| `no-space-before-semi` | `@stylistic/semi-spacing` | `baseConfig` | absent | `error`, `{ before: false, after: true }` | `a();`, with no space before the semicolon. |
+| `no-spaced-func` | `@stylistic/function-call-spacing` (batch 1) | `baseConfig` | absent | `error`, `never` | Replaced by the batch 1 rule. |
+| `no-tabs` | `@stylistic/no-tabs` | `baseConfig` | absent | `error` | Tabs are not allowed in indentation. |
+| `no-throw-literal` | `no-throw-literal` (core); `@typescript-eslint/only-throw-error` in `typeCheckedConfig` | `baseConfig`, `typeCheckedConfig` | absent | `error` (core), TS `error` in typed files | `throw new Error(...)`. The typed version needs type information. |
+| `no-trailing-spaces` | `@stylistic/no-trailing-spaces` | `baseConfig` | `error` | `error` | Preserved. |
+| `no-use-before-define` | `no-use-before-define` (core, JS); `@typescript-eslint/no-use-before-define` (TS) | `baseConfig` | absent | `warn`, `{ functions: false, classes: true, variables: true }` | Functions may be declared later. In TS the core rule is off and the TS version applies. |
+| `no-useless-constructor` | `no-useless-constructor` (core, JS); `@typescript-eslint/no-useless-constructor` (TS) | `baseConfig` | absent | `warn` | Parameter properties, access modifiers and constructors with logic are kept. In TS the core rule is off. |
+| `no-whitespace-before-property` | `@stylistic/no-whitespace-before-property` | `baseConfig` | absent | `error` | `obj.prop`, with no space before the property. |
+
+Notes on the decisions:
+
+- **Three rules set to `warn`:** `@stylistic/no-mixed-operators`, `no-use-before-define` and `no-useless-constructor`.
+- **TypeScript-specific rules:** `@typescript-eslint/no-use-before-define` and `@typescript-eslint/no-useless-constructor` apply to TS files without type information, so the core versions are off in TS. `@typescript-eslint/no-implied-eval` and `@typescript-eslint/only-throw-error` need type information, so they apply only in `typeCheckedConfig`, and the core versions are off there. Without `typeCheckedConfig`, the core rules still apply to TS files.
+- **Behaviors checked in TypeScript:** an interface used before its declaration is accepted (the TS rule ignores type references by default). Enums and classes used before their declaration are reported. A constructor with parameter properties, a `private` constructor and a constructor with logic are accepted. A constructor that only calls `super` is reported.
+- **Replaced or deprecated rules:** `no-spaced-func`, `no-space-before-semi` and `no-comma-dangle` are covered by batch 1 and batch 2 rules; `no-new-symbol` is covered by `no-new-native-nonconstructor`. The core versions are not registered.
+- **Dispensed rules:** `no-arrow-condition`, `no-reserved-keys` and `newline-per-chained-call` (not enforced). `no-confusing-arrow` and `no-extra-parens` stay off.
+- **Preserved rules:** `no-array-constructor` (TS), `no-empty-function` (TS, warn), `no-multi-spaces` and `no-trailing-spaces`.
+- **Known conflict, `max-statements-per-line` and `brace-style`:** described in batch 2. It does not change in this batch.
 
 ### TypeScript files
 

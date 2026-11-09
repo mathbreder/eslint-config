@@ -21,6 +21,10 @@ export const typeCheckedConfig = defineConfig([
     },
     rules: {
       '@typescript-eslint/no-floating-promises': 'error',
+      'no-implied-eval': 'off',
+      '@typescript-eslint/no-implied-eval': 'error',
+      'no-throw-literal': 'off',
+      '@typescript-eslint/only-throw-error': 'error',
     },
   },
 ]);

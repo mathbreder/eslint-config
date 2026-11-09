@@ -96,6 +96,11 @@ export const baseConfig = defineConfig([
       'no-unassigned-vars': 'error',
       'no-useless-assignment': 'error',
       'preserve-caught-error': 'error',
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'no-throw-literal': 'error',
+      'no-use-before-define': [ 'warn', { functions: false, classes: true, variables: true } ],
+      'no-useless-constructor': 'warn',
 
       // Typescript specific rules
       '@typescript-eslint/no-unused-vars': [
@@ -211,6 +216,13 @@ export const baseConfig = defineConfig([
       '@stylistic/key-spacing': [ 'error', { beforeColon: false, afterColon: true } ],
       '@stylistic/keyword-spacing': [ 'error', { before: true, after: true } ],
       '@stylistic/max-statements-per-line': [ 'error', { max: 1 } ],
+      '@stylistic/multiline-ternary': [ 'error', 'always-multiline' ],
+      '@stylistic/new-parens': [ 'error', 'always' ],
+      '@stylistic/no-floating-decimal': 'error',
+      '@stylistic/no-mixed-operators': 'warn',
+      '@stylistic/no-tabs': 'error',
+      '@stylistic/no-whitespace-before-property': 'error',
+      '@stylistic/semi-spacing': [ 'error', { before: false, after: true } ],
 
       // Require descriptions for eslint directive comments
       'eslint-comments/require-description': [ 'error', { 'ignore': [] } ],
@@ -236,7 +248,11 @@ export const baseConfig = defineConfig([
       'no-undef': 'off',
       'no-array-constructor': 'off',
       'no-unused-expressions': 'off',
+      'no-use-before-define': 'off',
+      'no-useless-constructor': 'off',
 
+      '@typescript-eslint/no-use-before-define': [ 'warn', { functions: false, classes: true, variables: true } ],
+      '@typescript-eslint/no-useless-constructor': 'warn',
       '@typescript-eslint/no-dupe-class-members': 'error',
       '@typescript-eslint/adjacent-overload-signatures': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
