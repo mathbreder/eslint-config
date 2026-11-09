@@ -68,6 +68,7 @@ export const baseConfig = defineConfig([
       'no-var': 'error',
       'prefer-const': 'error',
       'prefer-arrow-callback': 'error',
+      'arrow-body-style': [ 'error', 'as-needed' ],
       'no-unused-vars': [ 'off' ],
       'no-console': [ 'warn', { allow: [ 'warn', 'error' ] } ],
       'no-debugger': 'error',

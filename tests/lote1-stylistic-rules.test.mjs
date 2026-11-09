@@ -18,6 +18,7 @@ const residual = (code, filename, rules) => linter
   .filter((message) => rules.includes(message.ruleId));
 
 const NEW_RULES = [
+  'arrow-body-style',
   '@stylistic/array-bracket-spacing',
   '@stylistic/arrow-parens',
   '@stylistic/arrow-spacing',
@@ -28,6 +29,7 @@ const NEW_RULES = [
 ];
 
 const EXPECTED_OPTIONS = {
+  'arrow-body-style': ['error', 'as-needed'],
   '@stylistic/array-bracket-spacing': ['error', 'always'],
   '@stylistic/arrow-parens': ['error', 'always'],
   '@stylistic/arrow-spacing': ['error', { before: true, after: true }],
@@ -192,4 +194,46 @@ test('TSX: eol-last e computed-property-spacing em arquivo de componente', () =>
   const found = residual(bad, 'view-eol.tsx', ['@stylistic/eol-last', '@stylistic/computed-property-spacing']);
   assert.equal(found.filter((m) => m.ruleId === '@stylistic/eol-last').length, 1);
   assert.equal(found.filter((m) => m.ruleId === '@stylistic/computed-property-spacing').length, 2);
+});
+
+test('arrow-body-style: bloco com retorno simples é reportado com severidade error', () => {
+  const bad = diagnostics('const f = (v) => { return v * 2; };\n', 'abs-simple-bad.js', 'arrow-body-style');
+  assert.equal(bad.length, 1);
+  assert.equal(bad[0].severity, 2);
+});
+
+test('arrow-body-style: expressão simples é aceita', () => {
+  assert.equal(diagnostics('const f = (v) => v * 2;\n', 'abs-simple.js', 'arrow-body-style').length, 0);
+});
+
+test('arrow-body-style: retorno de objeto literal entre parênteses é aceito', () => {
+  assert.equal(diagnostics('const f = () => ({ a: 1 });\n', 'abs-object.js', 'arrow-body-style').length, 0);
+});
+
+test('arrow-body-style: bloco que retorna objeto literal sem necessidade é reportado', () => {
+  const bad = diagnostics('const f = () => { return { a: 1 }; };\n', 'abs-object-bad.js', 'arrow-body-style');
+  assert.equal(bad.length, 1);
+  assert.equal(bad[0].severity, 2);
+});
+
+test('arrow-body-style: bloco com múltiplas instruções é aceito', () => {
+  const code = 'const f = (v) => {\n  const doubled = v * 2;\n  return doubled;\n};\n';
+  assert.equal(diagnostics(code, 'abs-multi.js', 'arrow-body-style').length, 0);
+});
+
+test('arrow-body-style: autofix converte retorno simples em expressão', () => {
+  const { output } = fixed('const f = (v) => { return v * 2; };\n', 'abs-fix-simple.js');
+  assert.equal(output, 'const f = (v) => v * 2;\n');
+  assert.equal(residual(output, 'abs-fix-simple.js', ['arrow-body-style']).length, 0);
+});
+
+test('arrow-body-style: autofix mantém o objeto literal entre parênteses', () => {
+  const { output } = fixed('const f = () => { return { a: 1 }; };\n', 'abs-fix-object.js');
+  assert.equal(output, 'const f = () => ({ a: 1 });\n');
+  assert.equal(residual(output, 'abs-fix-object.js', ['arrow-body-style']).length, 0);
+});
+
+test('arrow-body-style: autofix não altera bloco com múltiplas instruções', () => {
+  const code = 'const f = (v) => {\n  const doubled = v * 2;\n  return doubled;\n};\n';
+  assert.equal(fixed(code, 'abs-fix-multi.js').output, code);
 });

@@ -32,9 +32,7 @@ const getJscConfig = ({ paths, ...params }: JscConfigParams): JscConfig => ({
   target: (String(params.target)).toLowerCase() as JscTarget,
 });
 
-const removeJsonTrailingComma = (jsonString: string): string => {
-  return jsonString.replace(/,(\s*(?:}|]))/g, '$1');
-};
+const removeJsonTrailingComma = (jsonString: string): string => jsonString.replace(/,(\s*(?:}|]))/g, '$1');
 
 const getTsConfigContent = (tsConfigPath: string): TsconfigRaw => {
   try {
@@ -56,9 +54,7 @@ const transformSwc = (filePath: string, jsc: JscConfig) =>
     swcrc: false,
   });
 
-const getSwcPlugin = (options: EsbuildBuildOptions) => {
-  return options.plugins?.find((p: EsbuildPlugin) => p.name === 'swc');
-};
+const getSwcPlugin = (options: EsbuildBuildOptions) => options.plugins?.find((p: EsbuildPlugin) => p.name === 'swc');
 
 const getCode = (swcOutput: swc.Output, sourcePath: string) => {
   const returnData = { contents: swcOutput.code };
