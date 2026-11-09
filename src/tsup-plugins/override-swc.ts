@@ -3,10 +3,10 @@ import path from 'path';
 
 import swc, { type JscConfig, type JscTarget } from '@swc/core';
 
-import { type BuildOptions, type Plugin as EsbuildPlugin, type PluginBuild, type TsconfigRaw } from 'esbuild';
+import type { EsbuildBuildOptions, EsbuildPlugin, EsbuildPluginBuild, TsconfigRaw } from '../types/esbuild-subset';
 import type { TsupPlugin } from '../types/tsup-plugin';
 
-export type OverrideSwcOptions = BuildOptions & {
+export type OverrideSwcOptions = EsbuildBuildOptions & {
   tsConfigPath?: string;
 };
 
@@ -56,7 +56,7 @@ const transformSwc = (filePath: string, jsc: JscConfig) =>
     swcrc: false,
   });
 
-const getSwcPlugin = (options: BuildOptions) => {
+const getSwcPlugin = (options: EsbuildBuildOptions) => {
   return options.plugins?.find((p: EsbuildPlugin) => p.name === 'swc');
 };
 
@@ -68,13 +68,12 @@ const getCode = (swcOutput: swc.Output, sourcePath: string) => {
       (source) => path.isAbsolute(source)
         ? path.relative(path.dirname(sourcePath), source)
         : source);
-    returnData.contents += '//# sourceMappingURL=data:application/json;base64,'
-      + Buffer.from(JSON.stringify(map)).toString('base64');
+    returnData.contents += `//# sourceMappingURL=data:application/json;base64,${Buffer.from(JSON.stringify(map)).toString('base64')}`;
   }
   return returnData;
 };
 
-const onLoad = async (build: PluginBuild, tsConfig: TsconfigRaw) => {
+const onLoad = async (build: EsbuildPluginBuild, tsConfig: TsconfigRaw) => {
   const filter = /\.[jt]sx?$/;
   build.onLoad({ filter }, async (args) => {
     const isTs = /\.tsx?$/.test(args.path);
@@ -90,7 +89,7 @@ const onLoad = async (build: PluginBuild, tsConfig: TsconfigRaw) => {
   });
 };
 
-const newSwcPluginSetup = (build: PluginBuild) => {
+const newSwcPluginSetup = (build: EsbuildPluginBuild) => {
   const options: OverrideSwcOptions = build.initialOptions;
   const tsConfigPath = options.tsConfigPath || 'tsconfig.json';
   const tsConfig: TsconfigRaw = getTsConfigContent(tsConfigPath);
@@ -99,7 +98,7 @@ const newSwcPluginSetup = (build: PluginBuild) => {
   onLoad(build, tsConfig);
 };
 
-const setup = (options: BuildOptions) => {
+const setup = (options: EsbuildBuildOptions) => {
   const plugin = getSwcPlugin(options);
   if (!plugin) return;
   plugin.setup = newSwcPluginSetup;

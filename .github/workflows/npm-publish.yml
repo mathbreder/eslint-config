@@ -1,33 +1,102 @@
-# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
+# Validates every change with pnpm and publishes the package to npm only after a GitHub release is created.
 # For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
 
 name: Node.js Package
 
 on:
+  pull_request:
+  push:
+    branches: [main]
   release:
     types: [created]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   build:
+    name: Build and verify (Node 22)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: 20
-      - run: npm ci
-      - run: npm test
+          version: 10.28.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run build
+      - run: pnpm run lint
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm test
+      - run: pnpm pack --pack-destination tarball
+      - name: Dry-run do tarball que será publicado
+        run: |
+          test "$(ls tarball/*.tgz | wc -l)" -eq 1
+          pnpm publish "./$(ls tarball/*.tgz)" --dry-run --no-git-checks --access public
+      - uses: actions/upload-artifact@v7
+        with:
+          name: package-tarball
+          path: tarball/*.tgz
+          if-no-files-found: error
+          retention-days: 7
 
-  publish-npm:
+  consumers:
+    name: Consumers (Node ${{ matrix.node-version }})
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20.19.0', '22.13.0', '22', '24', '26']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: 20
+          version: 10.28.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+      - uses: actions/download-artifact@v8
+        with:
+          name: package-tarball
+          path: tarball
+      - name: Testar o tarball nos consumidores
+        run: |
+          test "$(ls tarball/*.tgz | wc -l)" -eq 1
+          node tests/consumers/run.mjs --tarball "./$(ls tarball/*.tgz)"
+
+  publish-npm:
+    name: Publish to npm
+    if: github.event_name == 'release'
+    needs: [build, consumers]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
           registry-url: https://registry.npmjs.org/
-      - run: npm ci
-      - run: npm publish
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+      - uses: actions/download-artifact@v8
+        with:
+          name: package-tarball
+          path: tarball
+      - name: Publicar o tarball verificado
+        run: |
+          test "$(ls tarball/*.tgz | wc -l)" -eq 1
+          pnpm publish "./$(ls tarball/*.tgz)" --no-git-checks --access public
         env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}

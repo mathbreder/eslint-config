@@ -1,7 +1,7 @@
-import type { BuildOptions } from 'esbuild';
+import type { EsbuildBuildOptions } from './esbuild-subset';
 
 type MaybePromise<T> = Promise<T> | T;
-type ModifyEsbuildOptions = (this: unknown, options: BuildOptions) => void;
+type ModifyEsbuildOptions = { bivarianceHack(this: unknown, options: EsbuildBuildOptions): void }['bivarianceHack'];
 
 export type BuildEnd = (this: unknown, ctx: { writtenFiles: WrittenFile[]; }) => MaybePromise<void>;
 
