@@ -37,4 +37,17 @@ assert.ok(
   'alias inexistente deve ser reportado',
 );
 
+const typedStrict = await lint('typed-rules.ts');
+assert.ok(
+  typedStrict.some((message) => message.ruleId === '@typescript-eslint/no-unsafe-assignment' && message.severity === 2),
+  'regra tipada deve reportar atribuição insegura com strict',
+);
+
+const typedLoose = await lint('loose/typed-rules.ts');
+assert.equal(typedLoose.filter((message) => message.fatal).length, 0, 'projeto sem strictNullChecks deve carregar sem erro fatal');
+assert.ok(
+  typedLoose.some((message) => message.ruleId === '@typescript-eslint/no-unsafe-assignment' && message.severity === 2),
+  'regra tipada deve reportar também sem strictNullChecks',
+);
+
 console.log('OK typescript');

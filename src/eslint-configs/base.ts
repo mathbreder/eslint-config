@@ -341,6 +341,33 @@ export const baseConfig = defineConfig([
       ],
       '@stylistic/type-generic-spacing': 'error',
       '@stylistic/type-named-tuple-spacing': 'error',
+
+      '@typescript-eslint/ban-tslint-comment': 'error',
+      '@typescript-eslint/consistent-generic-constructors': [
+        'warn',
+        'constructor',
+      ],
+      '@typescript-eslint/consistent-indexed-object-style': [
+        'warn',
+        'record',
+      ],
+      '@typescript-eslint/consistent-type-imports': [
+        'warn',
+        {
+          prefer: 'type-imports',
+          fixStyle: 'inline-type-imports',
+        },
+      ],
+      '@typescript-eslint/no-confusing-non-null-assertion': 'error',
+      '@typescript-eslint/no-invalid-void-type': 'error',
+      '@typescript-eslint/no-non-null-asserted-nullish-coalescing': 'error',
+      '@typescript-eslint/prefer-literal-enum-member': [
+        'warn',
+        {
+          allowBitwiseExpressions: true,
+        },
+      ],
+      '@typescript-eslint/unified-signatures': 'warn',
     },
   },
   {

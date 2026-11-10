@@ -350,8 +350,8 @@ test('type-generic-spacing: parsing em TSX aceita <T,> e corrige Array< string >
   const messages = lint(baseConfig, tsx, fileOf(TSXFILE));
   assert.equal(messages.filter((m) => m.fatal).length, 0);
   assert.equal(messages.filter((m) => m.ruleId === '@stylistic/type-generic-spacing').length, 0);
-  const fixed = fixTwice(baseConfig, 'const mapa: Map< string, number > = new Map();\n', fileOf(TSXFILE));
-  assert.equal(fixed.once, 'const mapa: Map<string, number> = new Map();\n');
+  const fixed = fixTwice(baseConfig, 'let mapa: Map< string, number >;\n', fileOf(TSXFILE));
+  assert.equal(fixed.once, 'let mapa: Map<string, number>;\n');
   assert.equal(fixed.twice, fixed.once);
 });
 

@@ -70,6 +70,7 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
   10. Batch 3 makes these rules `error`: `multiline-ternary`, `new-parens`, `no-floating-decimal`, `no-tabs`, `no-whitespace-before-property`, `semi-spacing`, `no-eval`, `no-implied-eval` and `no-throw-literal`. It makes `no-mixed-operators`, `no-use-before-define` and `no-useless-constructor` `warn`. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 3](#rule-review-batch-3).
   11. Batch 4 makes these rules `error`: `operator-linebreak`, `padded-blocks`, `rest-spread-spacing`, `semi-style`, `space-before-blocks`, `space-before-function-paren`, `space-infix-ops`, `space-unary-ops`, `switch-colon-spacing`, `template-curly-spacing`, `template-tag-spacing`, `wrap-iife`, `yield-star-spacing`, `prefer-promise-reject-errors` (outside `typeCheckedConfig`), `perfectionist/sort-named-imports` and `perfectionist/sort-named-exports`. It makes `quote-props` and `require-await` `warn`. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 4](#rule-review-batch-4).
   12. Batch 5 makes these rules active: `@stylistic/indent-binary-ops` and `@stylistic/padding-line-between-statements` (`warn`), `@stylistic/member-delimiter-style`, `@stylistic/type-generic-spacing` and `@stylistic/type-named-tuple-spacing` (`error`, TypeScript files), and `@stylistic/jsx-one-expression-per-line` (`warn`) and `@stylistic/jsx-tag-spacing` (`error`) in the React and Next.js presets. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 5](#rule-review-batch-5).
+  13. Batch 6 activates nine TypeScript rules that need no type information (`warn` or `error`, `.ts`, `.tsx`, `.mts` and `.cts` only), 40 TypeScript rules that need type information (only in the opt-in `typeCheckedConfig`), and `react/no-unsafe` (`warn`, `checkAliases: true`, in JSX and TSX with the React preset). Projects that use these presets may see new lint errors and warnings. See [Rule review, batch 6: TypeScript and React rules](#rule-review-batch-6-typescript-and-react-rules).
   Version 0.1.0 is the first release with these changes. The `0.x` series allows breaking changes in a minor version.
 
 ### Installation
@@ -673,6 +674,70 @@ Compared with the previous commit, the effective configuration differs only in t
 - `tests/lote6-jsx-no-undef.test.mjs` runs 75 tests. They cover the 16 scenarios in `.js`, `.jsx` and `.tsx`, the fixtures in `tests/fixtures/lote6/jsx-no-undef/`, the effective configuration per composition and extension, the alternatives that were rejected, and the residual limitations above.
 - Mutation checks on the built output: reverting the deduplication (`react/jsx-no-undef` back to `error`) makes 19 of these tests fail, and turning `no-undef` off in the same block makes 24 fail.
 - Three expectations of earlier tests described the duplicate that this batch removes, and were updated to the new behavior: `tests/react-inherited.test.mjs` (`react/jsx-no-undef` is `off` in `case.jsx`, and `no-undef` covers it), and two assertions in `tests/lote6-jsx-duplicates.test.mjs` (in `.jsx`, `no-undef` reports the component once, and `react/jsx-no-undef` is `off`).
+
+### Rule review, batch 6: TypeScript and React rules
+
+This batch activates 50 rules: nine TypeScript rules that need no type information, 40 TypeScript rules that need type information, and one React rule. The effective configuration was compared with the previous commit with `ESLint.calculateConfigForFile()`, for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts` and `.cts`, under `baseConfig`, the React preset, the Next.js preset, the Expo preset, `typeCheckedConfig` and the combinations of these. Exactly these 50 rules changed, and no other rule value changed.
+
+#### Nine rules without type information
+
+They are in `baseConfig`, applied only to `.ts`, `.tsx`, `.mts` and `.cts`, and need no `projectService`.
+
+| Rule | Severity | Options | Autofix |
+|---|---|---|---|
+| `@typescript-eslint/ban-tslint-comment` | `error` | none | Removes the comment |
+| `@typescript-eslint/consistent-generic-constructors` | `warn` | `constructor` | Moves the type arguments to the constructor |
+| `@typescript-eslint/consistent-indexed-object-style` | `warn` | `record` | Converts to `Record` |
+| `@typescript-eslint/consistent-type-imports` | `warn` | `prefer: 'type-imports'`, `fixStyle: 'inline-type-imports'` | Writes `import { type X }` |
+| `@typescript-eslint/no-confusing-non-null-assertion` | `error` | none | Suggestion only |
+| `@typescript-eslint/no-invalid-void-type` | `error` | none | Suggestion only |
+| `@typescript-eslint/no-non-null-asserted-nullish-coalescing` | `error` | none | Suggestion only |
+| `@typescript-eslint/prefer-literal-enum-member` | `warn` | `allowBitwiseExpressions: true` | Suggestion only |
+| `@typescript-eslint/unified-signatures` | `warn` | none | Suggestion only |
+
+#### Forty rules with type information
+
+They are in `typeCheckedConfig`, which stays opt-in: it is not part of `baseConfig`, the React, Next.js or Expo presets. A project that does not use `typeCheckedConfig` gets none of these rules. Each rule requires type information, so `projectService` must find a `tsconfig.json` for each file.
+
+- **`error` (17):** `no-array-delete`, `no-duplicate-type-constituents`, `no-for-in-array`, `no-misused-spread`, `no-mixed-enums`, `no-unsafe-assignment`, `no-unsafe-call`, `no-unsafe-enum-assignment`, `no-unsafe-enum-comparison`, `no-unsafe-member-access`, `no-unsafe-return`, `no-unsafe-unary-minus`, `related-getter-setter-pairs`, `restrict-plus-operands`, `switch-exhaustiveness-check`, `unbound-method`, and `require-array-sort-compare` with `ignoreStringArrays: true`.
+- **`warn` (23):** `no-base-to-string`, `no-misused-promises`, `no-redundant-type-constituents`, `no-unnecessary-type-assertion`, `restrict-template-expressions`, `consistent-type-exports`, `no-confusing-void-expression` with `ignoreArrowShorthand: true`, `no-deprecated`, `no-generated-empty-object-type`, `no-meaningless-void-operator`, `no-unnecessary-template-expression`, `no-unnecessary-type-arguments`, `no-unnecessary-type-conversion`, `no-unnecessary-type-parameters`, `prefer-find`, `prefer-includes`, `prefer-optional-chain`, `prefer-readonly`, `prefer-reduce-type-parameter`, `prefer-return-this-type`, `prefer-string-starts-ends-with`, `return-await` with `error-handling-correctness-only`, and `use-unknown-in-catch-callback-variable`.
+
+#### One React rule
+
+`react/no-unsafe` is `warn`, with `checkAliases: true`. It is part of the React preset, in JSX and TSX only. Its effect with `checkAliases: true` is to report both the explicit `UNSAFE_` method name and the legacy name without the prefix. For example, `UNSAFE_componentWillMount` and `componentWillReceiveProps` are both reported. With `checkAliases: false`, only the `UNSAFE_` name is reported.
+
+The `expoConfig` preset explicitly sets `react/no-unsafe` to `off`. In a composition with `baseConfig`, `reactNextConfig` and `expoConfig`, the Expo block comes later and turns the rule off. This package does not change the Expo preset. A project that wants the rule in that composition must add it again after `expoConfig`.
+
+#### Interactions
+
+- **Promises.** `no-floating-promises` reports an unhandled promise statement, and `no-misused-promises` reports a promise used as a condition. Both report on different lines and do not duplicate each other. `return-await` with `error-handling-correctness-only` and `require-await` do not report a correct `async` function that returns a promise.
+- **Overloads.** `unified-signatures` and `adjacent-overload-signatures` can report the same overload, with different conditions. `unified-signatures` asks for a single signature, and `adjacent-overload-signatures` asks for the overloads to be adjacent. Neither changes the code when autofix runs, and the result is stable. This overlap is accepted, and neither rule was removed.
+- **Imports.** `consistent-type-imports` and `perfectionist/sort-named-imports` are fixed together in one pass, producing `import { type Alpha, type Zed }`. `no-duplicate-imports` still reports `import type` and `import { type }` from the same module, because no rule merges them. The developer must merge them.
+- **Autofix safety.** Rules that could change behavior, such as the `no-unsafe-*` rules, have no autofix. `prefer-find` only suggests `find` for `filter(...)[0]`. The autofix does not change the meaning of the code in the tested cases, and a second pass changes nothing.
+
+#### `strictNullChecks`
+
+The typed fixtures run with `strict: true` and with `strictNullChecks: false`. Both projects load the configuration and report the same rules, with one difference: `no-unsafe-assignment` reports a case that `strict` accepts when `strictBindCallApply` is off, because `bind` returns `any`. The configuration does not require `strictNullChecks`, and no `tsconfig.json` is changed.
+
+#### Limitations and residual cases
+
+- The React rule is off in a composition with `expoConfig` after `reactNextConfig`, as described above.
+- `prefer-find`, `prefer-literal-enum-member` and the nullish and void rules report, but offer suggestions instead of autofix.
+- `no-duplicate-imports` is not merged by the new import rules.
+
+#### Tests and validation
+
+- `tests/lote6-typescript-basic.test.mjs` covers the nine rules without type information: severity, scope, the expected reports, autofix, suggestions and the interactions.
+- `tests/lote6-typescript-typed.test.mjs` covers the forty typed rules: severity and scope, each rule reported at least once in a fixture that uses `strict: true` and in one that uses `strictNullChecks: false`, no report on valid code, autofix convergence, suggestion-only rules, and the promise interactions. The fixtures are in `tests/fixtures/lote6/typescript-typed/`, with their own `tsconfig.json` files.
+- `tests/lote6-react-rules.test.mjs` covers `react/no-unsafe`: scope, the Expo override, `checkAliases` on and off, and the JSX and TSX fixtures.
+- `tests/consumers/typescript` validates the packed package with a project that uses `strict: true` and a second project under `src/loose/` that uses `strictNullChecks: false`.
+
+#### Compatibility
+
+- Projects that use `typeCheckedConfig` may see new errors and warnings in TypeScript files. The 40 rules report unsafe `any` use, unnecessary assertions and type conversions, and `filter`, `indexOf` and `&&` patterns that have a more direct form. In the fixtures, 12 of the 40 rules produce an autofix, and no `no-unsafe-*` rule has one. The other rules report without an autofix, or with a suggestion only.
+- Projects that use only `baseConfig` may see new errors and warnings in TypeScript files for the nine rules without type information. Four are errors (`ban-tslint-comment`, `no-confusing-non-null-assertion`, `no-invalid-void-type` and `no-non-null-asserted-nullish-coalescing`), and five are warnings (`consistent-generic-constructors`, `consistent-indexed-object-style`, `consistent-type-imports`, `prefer-literal-enum-member` and `unified-signatures`).
+- Projects that use `reactNextConfig` may see a new warning for legacy lifecycle methods in class components.
+- No plugin was added, and no dependency was updated.
 
 ### TypeScript files
 

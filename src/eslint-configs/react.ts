@@ -103,6 +103,12 @@ export const reactNextConfig = defineConfig([
       'react/jsx-newline': [ 'error', { prevent: true } ],
       'react/jsx-no-duplicate-props': [ 'error', { ignoreCase: true } ],
       'react/jsx-no-constructed-context-values': [ 'error' ],
+      'react/no-unsafe': [
+        'warn',
+        {
+          checkAliases: true,
+        },
+      ],
       'react/no-unstable-nested-components': [ 'warn', { allowAsProps: true } ],
       'react/prop-types': 'off',
       'react/forbid-component-props': [ 'error', { forbid: [ 'style' ] } ],
