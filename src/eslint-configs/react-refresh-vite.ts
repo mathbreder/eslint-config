@@ -9,7 +9,7 @@ import { reactRefresh } from 'eslint-plugin-react-refresh';
 export const viteReactRefreshConfig = defineConfig([
   {
     name: 'react-refresh-vite',
-    files: ['**/*.{jsx,tsx}'],
+    files: [ '**/*.{jsx,tsx}' ],
     plugins: {
       'react-refresh': reactRefresh.plugin,
     },

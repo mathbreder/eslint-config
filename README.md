@@ -25,6 +25,7 @@ Framework requirements, which apply only when you use that preset:
 Other requirements:
 
 - ESLint 9.35 or newer, flat config only. 9.35 is the minimum because of the `preserve-caught-error` rule. See [Compatibility policy](#compatibility-policy) for the ESLint 9 line.
+- `typescript-eslint` `^8.72.1` (required peer). `baseConfig` uses its parser for every file. `reactNextConfig` uses the same parser for `.js` and `.jsx` files, so it also needs `typescript-eslint` when it is used without `baseConfig`.
 - TypeScript `>=4.8.4 <6.1.0` when you use TypeScript. This is the range supported by `typescript-eslint` 8.72.
 - `eslint-config-expo` `^58.0.4` (optional peer) when you use `expoConfig`. Expo 10 is no longer supported by this package version.
 - `@next/eslint-plugin-next` `^16.4.5` (optional peer) when you use `nextConfig`.
@@ -64,6 +65,12 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
   5. `PathGroup.group` is required. It was optional before.
   6. When `project` is omitted, the TypeScript resolver uses the `tsconfig.json` of the current working directory, as documented in the options table. Before, it looked for a `tsconfig.json` next to the package build, which projects did not have.
   7. Node.js support changed: `engines` is `^20.19.0 || ^22.13.0 || >=24.0.0`. Node 18, Node 20.9 to 20.18, Node 22.0 to 22.12 and Node 23 are no longer supported. See [Node.js support](#nodejs-support).
+  8. Eight rules are now `error`: `array-bracket-spacing`, `arrow-body-style` (core rule, `as-needed`), `arrow-parens`, `arrow-spacing`, `comma-style`, `computed-property-spacing`, `eol-last` and `function-call-spacing`. Projects that use the presets may see new lint errors, most of them fixable by autofix. See [Rule review, batch 1](#rule-review-batch-1).
+  9. Six more Stylistic rules are now `error`: `function-call-argument-newline`, `function-paren-newline`, `generator-star-spacing`, `key-spacing`, `keyword-spacing` and `max-statements-per-line`. Projects that use the presets may see new lint errors. `jsx-a11y/anchor-ambiguous-text` is now `warn` in JSX and TSX, with a list of generic link texts. See [Rule review, batch 2](#rule-review-batch-2).
+  10. Batch 3 makes these rules `error`: `multiline-ternary`, `new-parens`, `no-floating-decimal`, `no-tabs`, `no-whitespace-before-property`, `semi-spacing`, `no-eval`, `no-implied-eval` and `no-throw-literal`. It makes `no-mixed-operators`, `no-use-before-define` and `no-useless-constructor` `warn`. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 3](#rule-review-batch-3).
+  11. Batch 4 makes these rules `error`: `operator-linebreak`, `padded-blocks`, `rest-spread-spacing`, `semi-style`, `space-before-blocks`, `space-before-function-paren`, `space-infix-ops`, `space-unary-ops`, `switch-colon-spacing`, `template-curly-spacing`, `template-tag-spacing`, `wrap-iife`, `yield-star-spacing`, `prefer-promise-reject-errors` (outside `typeCheckedConfig`), `perfectionist/sort-named-imports` and `perfectionist/sort-named-exports`. It makes `quote-props` and `require-await` `warn`. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 4](#rule-review-batch-4).
+  12. Batch 5 makes these rules active: `@stylistic/indent-binary-ops` and `@stylistic/padding-line-between-statements` (`warn`), `@stylistic/member-delimiter-style`, `@stylistic/type-generic-spacing` and `@stylistic/type-named-tuple-spacing` (`error`, TypeScript files), and `@stylistic/jsx-one-expression-per-line` (`warn`) and `@stylistic/jsx-tag-spacing` (`error`) in the React and Next.js presets. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 5](#rule-review-batch-5).
+  13. Batch 6 activates nine TypeScript rules that need no type information (`warn` or `error`, `.ts`, `.tsx`, `.mts` and `.cts` only), 40 TypeScript rules that need type information (only in the opt-in `typeCheckedConfig`), and `react/no-unsafe` (`warn`, `checkAliases: true`, in JSX and TSX with the React preset). Projects that use these presets may see new lint errors and warnings. See [Rule review, batch 6: TypeScript and React rules](#rule-review-batch-6-typescript-and-react-rules).
   Version 0.1.0 is the first release with these changes. The `0.x` series allows breaking changes in a minor version.
 
 ### Installation
@@ -120,12 +127,12 @@ export default eslintConfigs.defineConfig([
 Presets available in `eslintConfigs`:
 
 - `baseConfig`: TypeScript, stylistic and perfectionist rules, plus general ESLint rules.
-- `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects.
+- `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects. For JavaScript and JSX files it also enables `no-undef` and the browser globals, so it detects undefined identifiers without `baseConfig`. See [Rule review, batch 6: `react/jsx-no-undef` and `no-undef`](#rule-review-batch-6-reactjsx-no-undef-and-no-undef).
 - `typeCheckedConfig`: opt-in rules that need type information. See [Type-checked rules](#type-checked-rules-opt-in).
-- `nextConfig`: opt-in Next.js rules, from `@mathbreder/eslint-config/next`. See [Next.js](#nextjs).
 
 Opt-in presets, not included in `eslintConfigs`:
 
+- `nextConfig`, from `@mathbreder/eslint-config/next`: opt-in Next.js rules from `@next/eslint-plugin-next`, an optional peer dependency (see [Requirements](#requirements)). Compose it with `baseConfig` and `reactNextConfig`: `...eslintConfigs.baseConfig, ...eslintConfigs.reactNextConfig, ...nextConfig`. See [Next.js](#nextjs).
 - `expoConfig`, from `@mathbreder/eslint-config/expo`: Expo defaults, from `eslint-config-expo` 58. It uses `react-hooks` 7 like `reactNextConfig`, so both can be combined in one config array in an installation where they resolve to the same plugin instance. The package checks this when you call `defineConfig` and fails with a clear message otherwise. See [React and Expo in one monorepo](#react-and-expo-in-one-monorepo) and [Migrating `expoConfig`](#migrating-expoconfig).
 - `viteReactRefreshConfig`, from `@mathbreder/eslint-config/react-refresh-vite`: see [React Refresh for Vite](#react-refresh-for-vite).
 
@@ -263,6 +270,478 @@ Run `pnpm exec eslint --fix` once after the change and review the reordered impo
   }
   ```
 - Import organization uses `import/order`. `perfectionist/sort-imports` is not enabled, so the two rules do not conflict. Perfectionist still sorts union and intersection types.
+
+### Rule review, batch 1
+
+This batch reviewed 21 rules. The status below is the effective configuration, checked with `ESLint.calculateConfigForFile()` for `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts` and `.cts`, with `baseConfig`, `reactNextConfig` and `expoConfig`. React and Expo do not change any of these rules. The Stylistic rule names are used; the core ESLint names are not registered when a Stylistic rule covers the same behavior.
+
+| Rule | Decision | Effective setting | Origin |
+|---|---|---|---|
+| `array-bracket-newline` | kept | `error`, `{ multiline: true }` | `baseConfig` (Stylistic) |
+| `array-element-newline` | kept | `error`, `consistent` | `baseConfig` (Stylistic) |
+| `array-bracket-spacing` | **added** | `error`, `always` | `baseConfig` (Stylistic) |
+| `arrow-body-style` | **added** (core rule; there is no Stylistic equivalent) | `error`, `as-needed` | `baseConfig` (ESLint core) |
+| `arrow-parens` | **added** | `error`, `always` | `baseConfig` (Stylistic) |
+| `arrow-spacing` | **added** | `error`, `{ before: true, after: true }` | `baseConfig` (Stylistic) |
+| `babel/object-curly-spacing` | replaced | `@stylistic/object-curly-spacing`: `error`, `always` | `baseConfig` (Stylistic) |
+| `babel/quotes` | replaced | `@stylistic/quotes`: `error`, `single` | `baseConfig` (Stylistic) |
+| `babel/semi` | replaced | `@stylistic/semi`: `error`, `always` | `baseConfig` (Stylistic) |
+| `block-spacing` | kept | `error`, `always` | `baseConfig` (Stylistic) |
+| `brace-style` | kept | `error`, `1tbs`, `{ allowSingleLine: true }` | `baseConfig` (Stylistic) |
+| `camelcase` | off, by decision | off | not configured |
+| `class-methods-use-this` | off, by decision | off | not configured |
+| `comma-dangle` | kept | `error`, `always-multiline` | `baseConfig` (Stylistic) |
+| `comma-spacing` | kept | `error`, `{ before: false, after: true }` | `baseConfig` (Stylistic) |
+| `comma-style` | **added** | `error`, `last` | `baseConfig` (Stylistic) |
+| `computed-property-spacing` | **added** | `error`, `never` | `baseConfig` (Stylistic) |
+| `consistent-return` | off, by decision | off | not configured |
+| `dot-location` | kept | `error`, `property` | `baseConfig` (Stylistic) |
+| `eol-last` | **added** | `error`, `always` | `baseConfig` (Stylistic) |
+| `func-call-spacing` | **added** as `@stylistic/function-call-spacing` | `error`, `never` | `baseConfig` (Stylistic) |
+
+Notes on the decisions:
+
+- **Added (8 rules):** `arrow-body-style`, `array-bracket-spacing`, `arrow-parens`, `arrow-spacing`, `comma-style`, `computed-property-spacing`, `eol-last` and `function-call-spacing`. They are `error` and they are absent from every preset before this batch. Autofix is available for all seven. The package source had 115 violations, all from `array-bracket-spacing` (108), `eol-last` (5) and `computed-property-spacing` (2), and they were fixed by autofix. `arrow-body-style` added 2 more, in `override-swc.ts`, also fixed by autofix. The total for this batch is 117 autofix changes. Projects that adopt the package will see these errors too, so they are a breaking change for lint results.
+- **Replaced `babel/*`:** `@babel/eslint-plugin` is not added. The three Stylistic rules above already enforce the same behavior, and they are active in every file extension.
+- **Off by decision:** `camelcase` is not global, because API, database and external object names may use other conventions. `class-methods-use-this` stays off, to avoid false positives in interfaces, inheritance and object-oriented code. `consistent-return` stays off. In TypeScript projects, the compiler option `noImplicitReturns` can enforce it, but this package does not assume that option in consumer projects and does not change their `tsconfig.json`.
+
+### Rule review, batch 2
+
+This batch reviewed 21 rules. The status below is the effective configuration, checked with `ESLint.calculateConfigForFile()` for `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts` and `.cts`, under `baseConfig` with the React, Expo and Next.js presets. The origin column says where each setting comes from: our `baseConfig`, a preset, an explicit `off` from a preset, or nothing (absent, which means off). Core ESLint names are deprecated when a Stylistic rule covers the same behavior, so the Stylistic names are used.
+
+| Rule | Modern equivalent | Origin | Before | After | Reason |
+|---|---|---|---|---|---|
+| `function-call-argument-newline` | `@stylistic/function-call-argument-newline` | `baseConfig` | absent | `error`, `consistent` | Arguments on one line, or one per line. |
+| `function-paren-newline` | `@stylistic/function-paren-newline` | `baseConfig` | absent | `error`, `multiline-arguments` | Multiline arguments need a line break after `(` and before `)`. |
+| `generator-star` | none | not configured | absent | absent | Removed from ESLint; `generator-star-spacing` covers it. |
+| `generator-star-spacing` | `@stylistic/generator-star-spacing` | `baseConfig` | absent | `error`, `after` | Writes `function* name()`. |
+| `i18next/no-literal-string` | none | not configured | absent | absent | Plugin not installed. Internationalization is the consumer's responsibility. |
+| `implicit-arrow-linebreak` | `@stylistic/implicit-arrow-linebreak` | not configured | absent | absent | Kept off. Arrow formatting is covered by `arrow-parens` and `arrow-spacing` from batch 1. |
+| `import/default` | none | `expoConfig` (`off`) | off | off | Not enabled globally. Expo's resolver setup and TypeScript imports would produce false positives. |
+| `import/named` | none | `expoConfig` (`off`) | off | off | Same as `import/default`. |
+| `import/no-anonymous-default-export` | none | not configured | absent | absent | Kept off. Anonymous default exports are not restricted globally. |
+| `import/no-relative-parent-imports` | none | not configured | absent | absent | Kept off. Relative imports to parent directories remain allowed. |
+| `indent` | `@stylistic/indent` | `baseConfig` | `error`, 2 | `error`, 2 | Preserved with the same options. |
+| `indent-legacy` | none | not configured | absent | absent | Removed from ESLint. `@stylistic/indent` covers it. |
+| `jsx-a11y/anchor-ambiguous-text` | `jsx-a11y` plugin, option `words` | `reactNextConfig` (`.jsx` and `.tsx` only) | off | `warn`, with a list of generic link texts in Portuguese and English | Enabled for JSX and TSX only, not in `baseConfig`. The list keeps the plugin defaults, because `words` replaces them. See the note below. |
+| `jsx-a11y/control-has-associated-label` | none | `reactNextConfig` (`off`) | off | off | Kept off. Not enabled by itself. |
+| `jsx-a11y/label-has-for` | none | `reactNextConfig` (`off`) | off | off | Kept off. `jsx-a11y/label-has-associated-control` stays `error`. |
+| `jsx-quotes` | `@stylistic/jsx-quotes` | `reactNextConfig` (`.jsx` and `.tsx` only) | `prefer-double` | `prefer-double` | Preserved. Only in JSX files. |
+| `key-spacing` | `@stylistic/key-spacing` | `baseConfig` | absent | `error`, `{ beforeColon: false, afterColon: true }` | `key: value`. |
+| `keyword-spacing` | `@stylistic/keyword-spacing` | `baseConfig` | absent | `error`, `{ before: true, after: true }` | Space around keywords such as `if`, `else`, `try` and `catch`. |
+| `linebreak-style` | `@stylistic/linebreak-style` | `baseConfig` | `error`, `unix` | `error`, `unix` | Preserved. |
+| `lines-around-comment` | `@stylistic/lines-around-comment` | not configured | absent | absent | Kept off. Does not force blank lines around comments. |
+| `max-statements-per-line` | `@stylistic/max-statements-per-line` | `baseConfig` | absent | `error`, `{ max: 1 }` | One statement per line. Differs from `brace-style` on single-line blocks; see below. |
+
+Notes on the decisions:
+
+- **Added (6 rules):** `function-call-argument-newline`, `function-paren-newline`, `generator-star-spacing`, `key-spacing`, `keyword-spacing` and `max-statements-per-line`. They were absent from every preset, and only the Stylistic names are registered.
+- **Preserved (3 rules):** `indent`, `linebreak-style` and `jsx-quotes`, with the same options as before.
+- **Kept off or dispensed:** the removed rules `generator-star` and `indent-legacy`, `i18next/no-literal-string`, the Expo rules `import/default` and `import/named`, the rules left off by decision, and the React rules that the React preset already sets to `off`.
+- **Autofix:** the package source had one violation, from `function-paren-newline`, fixed by autofix in `override-swc.ts`. No other rule in this batch produced violations in the package source.
+- **`jsx-a11y/anchor-ambiguous-text`:** the React preset sets `warn` for `.jsx` and `.tsx` files, with this list: the plugin defaults (`click here`, `here`, `link`, `a link`, `learn more`), then the Portuguese texts `clique aqui`, `aqui`, `clique`, `um link`, `saiba mais`, `leia mais`, `veja mais` and `mais`, then the English texts `read more`, `more` and `click`. The plugin compares the text in lowercase, trimmed, with collapsed spaces and without the punctuation `,.?¿!‽¡;:`, so case and spacing variations are covered without extra entries. Other punctuation, such as `…` or `-`, is not removed by the plugin, so `clique aqui…` is not reported. Descriptive text and descriptive `aria-label` values are not reported. This list was defined from common generic link texts; it should be confirmed for your projects before publication.
+- **Overlap, `max-statements-per-line` and `brace-style` (not a technical conflict):** `brace-style` with `allowSingleLine: true` accepts `if (a) { b(); }`, and `max-statements-per-line` with `max: 1` rejects it, because it counts the `if` and `b();` as two statements on one line. Both rules report nothing for the multiline form `if (a) {` / `  b();` / `}`, which satisfies both, so there is no code that cannot be made compliant. Neither rule rewrites the single-line block, so autofix leaves it unchanged and it does not oscillate. The rules disagree only about the single-line form. The configuration is unchanged. A possible change is `ignoredNodes: ['IfStatement']` on `max-statements-per-line`, which would accept the single-line form and changes what the rule measures, so it needs a decision.
+
+### Rule review, batch 3
+
+This batch reviewed 25 rules. The table gives the effective configuration before and after, checked with `ESLint.calculateConfigForFile()` for `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, `.cjs`, `.mts` and `.cts`, under `baseConfig`, the React, Expo and Next.js presets, and `typeCheckedConfig`. "Origin" says where the setting comes from: `baseConfig`, the TypeScript block of `baseConfig`, `typeCheckedConfig`, a preset, or nothing (absent). Stylistic names are used when they exist; core names are used when Stylistic has no equivalent.
+
+| Rule | Implementation | Origin | Before | After | Reason |
+|---|---|---|---|---|---|
+| `multiline-ternary` | `@stylistic/multiline-ternary` | `baseConfig` | absent | `error`, `always-multiline` | Multiline ternaries keep one line break per part. |
+| `new-parens` | `@stylistic/new-parens` | `baseConfig` | absent | `error`, `always` | `new Foo()`, with parentheses. |
+| `newline-per-chained-call` | `@stylistic/newline-per-chained-call` | not configured | absent | absent | Not enforced. Long chains on one line are allowed. |
+| `no-array-constructor` | `@typescript-eslint/no-array-constructor` in all files; core off in TS and not enabled in JS | `baseConfig` | TS `error` | TS `error` | Preserved. The TypeScript version also applies to `.js`, `.jsx`, `.mjs` and `.cjs`, with no duplicate diagnostic. |
+| `no-arrow-condition` | none | not available | absent | absent | Not in Stylistic or core. Covered by the batch 1 arrow rules. |
+| `no-comma-dangle` | `@stylistic/comma-dangle` | `baseConfig` | `error`, `always-multiline` | `error`, `always-multiline` | Replaced by the Stylistic rule approved in batch 1; not added. |
+| `no-confusing-arrow` | `@stylistic/no-confusing-arrow` | not configured | absent | absent | Not enabled in this batch. Batch 1 keeps `arrow-parens` and `arrow-spacing`. |
+| `no-empty-function` | `@typescript-eslint/no-empty-function` | `baseConfig` (TS block) | `warn`, allow `overrideMethods`, `decoratedFunctions` | same | Preserved. Test files keep their existing override. |
+| `no-eval` | `no-eval` (core) | `baseConfig` | absent | `error` | Blocks `eval`, `globalThis.eval`, `global.eval` and aliases such as `const f = eval`. `window.eval(...)` is reported only where `window` is a declared global: the React preset in `.js`, `.jsx` and `.tsx`, the Expo preset, or a configuration with browser globals. See the note below. |
+| `no-extra-parens` | `@stylistic/no-extra-parens` | not configured | absent | absent | Kept off, so useful parentheses stay. |
+| `no-floating-decimal` | `@stylistic/no-floating-decimal` | `baseConfig` | absent | `error` | `0.5`, not `.5`. |
+| `no-implied-eval` | `no-implied-eval` (core); `@typescript-eslint/no-implied-eval` in `typeCheckedConfig` | `baseConfig`, `typeCheckedConfig` | absent | `error` (core), TS `error` in typed files | Blocks strings passed to `setTimeout`/`setInterval`. The typed version needs type information, so the core rule stays in files without it. |
+| `no-mixed-operators` | `@stylistic/no-mixed-operators` | `baseConfig` | absent | `warn` | Warns on mixed operators; parentheses clarify. |
+| `no-mixed-spaces-and-tabs` | covered by `@stylistic/no-tabs` | `baseConfig` | absent | absent (covered) | `no-tabs` rejects any tab, so mixed indentation is rejected too. |
+| `no-multi-spaces` | `@stylistic/no-multi-spaces` | `baseConfig` | `error` | `error` | Preserved. |
+| `no-new-symbol` | replaced by `no-new-native-nonconstructor` | `@eslint/js` recommended | absent (core deprecated) | `error` (inherited) | The core rule is deprecated. The replacement is already active through the recommended preset. |
+| `no-reserved-keys` | none | not available | absent | absent | Removed; not in Stylistic or core. |
+| `no-space-before-semi` | `@stylistic/semi-spacing` | `baseConfig` | absent | `error`, `{ before: false, after: true }` | `a();`, with no space before the semicolon. |
+| `no-spaced-func` | `@stylistic/function-call-spacing` (batch 1) | `baseConfig` | absent | `error`, `never` | Replaced by the batch 1 rule. |
+| `no-tabs` | `@stylistic/no-tabs` | `baseConfig` | absent | `error` | Tabs are not allowed in indentation. |
+| `no-throw-literal` | `no-throw-literal` (core); `@typescript-eslint/only-throw-error` in `typeCheckedConfig` | `baseConfig`, `typeCheckedConfig` | absent | `error` (core), TS `error` in typed files | `throw new Error(...)`. The typed version needs type information. |
+| `no-trailing-spaces` | `@stylistic/no-trailing-spaces` | `baseConfig` | `error` | `error` | Preserved. |
+| `no-use-before-define` | `no-use-before-define` (core, JS); `@typescript-eslint/no-use-before-define` (TS) | `baseConfig` | absent | `warn`, `{ functions: false, classes: true, variables: true }` | Functions may be declared later. In TS the core rule is off and the TS version applies. |
+| `no-useless-constructor` | `no-useless-constructor` (core, JS); `@typescript-eslint/no-useless-constructor` (TS) | `baseConfig` | absent | `warn` | Parameter properties, access modifiers and constructors with logic are kept. In TS the core rule is off. |
+| `no-whitespace-before-property` | `@stylistic/no-whitespace-before-property` | `baseConfig` | absent | `error` | `obj.prop`, with no space before the property. |
+
+Notes on the decisions:
+
+- **Three rules set to `warn`:** `@stylistic/no-mixed-operators`, `no-use-before-define` and `no-useless-constructor`.
+- **TypeScript-specific rules:** `@typescript-eslint/no-use-before-define` and `@typescript-eslint/no-useless-constructor` apply to TS files without type information, so the core versions are off in TS. `@typescript-eslint/no-implied-eval` and `@typescript-eslint/only-throw-error` need type information, so they apply only in `typeCheckedConfig`, and the core versions are off there. Without `typeCheckedConfig`, the core rules still apply to TS files.
+- **Behaviors checked in TypeScript:** an interface used before its declaration is accepted (the TS rule ignores type references by default). Enums and classes used before their declaration are reported. A constructor with parameter properties, a `private` constructor and a constructor with logic are accepted. A constructor that only calls `super` is reported.
+- **Replaced or deprecated rules:** `no-spaced-func`, `no-space-before-semi` and `no-comma-dangle` are covered by batch 1 and batch 2 rules; `no-new-symbol` is covered by `no-new-native-nonconstructor`. The core versions are not registered.
+- **Dispensed rules:** `no-arrow-condition`, `no-reserved-keys` and `newline-per-chained-call` (not enforced). `no-confusing-arrow` and `no-extra-parens` stay off.
+- **Preserved rules:** `no-array-constructor` (TypeScript version in all files), `no-empty-function` (TS, warn), `no-multi-spaces` and `no-trailing-spaces`.
+- **`no-eval` and globals:** the core rule reads the global scope. It checks `window.eval` only if `window` is declared, and `globalThis`/`global` are reported without a declaration because they are standard or Node globals. `baseConfig` declares only Node and Jest globals, so `window.eval(...)` in `.js` or `.ts` is not reported. The typed configuration does not change this. Adding `window` to the base globals would change behavior for every consumer and needs a decision.
+- **Defaults added by ESLint:** `no-use-before-define` (core) and `@typescript-eslint/no-use-before-define` receive defaults such as `enums`, `typedefs` and `ignoreTypeReferences`. The approved options are the three in the table. The others are defaults, not extra configuration.
+- **Overlap, `max-statements-per-line` and `brace-style`:** described in batch 2. It is not a technical conflict, and it does not change in this batch.
+
+### Rule review, batch 4
+
+This batch reviewed 41 rules. Of these, 17 do not exist in the installed packages or were discarded by the review (marked "Discarded"). The rest are split into 18 new activations, 6 preserved settings and rules left unchanged. The table gives the state before and after, checked with `ESLint.calculateConfigForFile()` for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts` and `.cts`, under `baseConfig`, the React, Next.js and Expo presets, and `typeCheckedConfig`.
+
+| Rule | Modern implementation | Origin before | Severity before | Severity after | Options after | Reason |
+|---|---|---|---|---|---|---|
+| `no-wrap-func` | none | not installed | absent | not configured | — | Discarded. Not in the installed packages. |
+| `nonblock-statement-body-position` | `@stylistic/nonblock-statement-body-position` exists | not configured | absent | not configured | — | Discarded. Out of scope for this batch. |
+| `object-curly-newline` | `@stylistic/object-curly-newline` | `baseConfig` | `error` | `error` | `{ multiline: true, consistent: true }` | Preserved. |
+| `object-curly-spacing` | `@stylistic/object-curly-spacing` | `baseConfig` | `error` | `error` | `always` | Preserved. |
+| `object-property-newline` | `@stylistic/object-property-newline` | `baseConfig` | `error` | `error` | `{ allowAllPropertiesOnSameLine: true }` | Preserved. |
+| `one-var-declaration-per-line` | `@stylistic/one-var-declaration-per-line` exists | not configured | absent | not configured | — | Discarded. The `one-var` decision belongs to another batch. |
+| `operator-linebreak` | `@stylistic/operator-linebreak` | not configured | absent | `error` | `before`, with `overrides: { '=': 'after' }` | Operators go at the start of the continuation line. The `=` of assignments and type aliases stays at the end of the line. |
+| `padded-blocks` | `@stylistic/padded-blocks` | not configured | absent | `error` | `never` | No blank lines at the start or end of blocks. |
+| `paths/alias` | none installed | not installed | absent | not configured | — | Discarded. Aliases belong to the consuming project. |
+| `perfectionist/sort-named-exports` | `perfectionist/sort-named-exports` | not configured | absent | `error` | `{ type: 'alphabetical', order: 'asc' }` | Sorts named export members. See the notes below. |
+| `perfectionist/sort-named-imports` | `perfectionist/sort-named-imports` | not configured | absent | `error` | `{ type: 'alphabetical', order: 'asc' }` | Sorts named import members inside each import. |
+| `prefer-promise-reject-errors` | core; `@typescript-eslint/prefer-promise-reject-errors` with types | not configured | absent | core `error`; TS `error` in typed files | — | Rejects with non-Error values. The typed version replaces the core one. |
+| `quote-props` | `@stylistic/quote-props` | not configured | absent | `warn` | `as-needed` | Quotes on keys only when needed. |
+| `quotes` | `@stylistic/quotes` | `baseConfig` | `error` | `error` | `single` | Preserved. |
+| `require-await` | core; `@typescript-eslint/require-await` with types | not configured | absent | core `warn`; TS `warn` in typed files | — | Async functions must contain `await`. The typed version accepts awaitable returns. |
+| `rest-spread-spacing` | `@stylistic/rest-spread-spacing` | not configured | absent | `error` | `never` | `...a`, without a space. |
+| `semi-spacing` | `@stylistic/semi-spacing` | `baseConfig` (batch 3) | `error` | `error` | `{ before: false, after: true }` | Preserved. |
+| `semi-style` | `@stylistic/semi-style` | not configured | absent | `error` | `last` | The semicolon goes at the end of the line. |
+| `simple-import-sort/exports` | none installed | not installed | absent | not configured | — | Discarded. `import/order` is kept. |
+| `simple-import-sort/imports` | none installed | not installed | absent | not configured | — | Discarded. `import/order` is kept. |
+| `space-after-function-name` | none (replaced) | not existing | absent | not configured | — | Discarded. Replaced by `space-before-function-paren`. |
+| `space-after-keywords` | none (replaced) | not existing | absent | not configured | — | Discarded. Covered by `keyword-spacing` (batch 2). |
+| `space-before-blocks` | `@stylistic/space-before-blocks` | not configured | absent | `error` | `always` | Space before `{`. |
+| `space-before-function-paren` | `@stylistic/space-before-function-paren` | not configured | absent | `error` | `{ anonymous: 'always', named: 'never', asyncArrow: 'always' }` | Anonymous and async functions get a space; named functions do not. |
+| `space-before-function-parentheses` | none (replaced) | not existing | absent | not configured | — | Discarded. Replaced by `space-before-function-paren`. |
+| `space-before-keywords` | none (replaced) | not existing | absent | not configured | — | Discarded. Covered by `keyword-spacing` (batch 2). |
+| `space-in-brackets` | none (replaced) | not existing | absent | not configured | — | Discarded. Covered by `array-bracket-spacing`, `computed-property-spacing` and `object-curly-spacing`. |
+| `space-in-parens` | `@stylistic/space-in-parens` | `baseConfig` | `error` | `error` | `never` | Preserved. |
+| `space-infix-ops` | `@stylistic/space-infix-ops` | not configured | absent | `error` | default | Spaces around binary operators. |
+| `space-return-throw-case` | none (replaced) | not existing | absent | not configured | — | Discarded. Covered by `keyword-spacing` (batch 2). |
+| `space-unary-ops` | `@stylistic/space-unary-ops` | not configured | absent | `error` | `{ words: true, nonwords: false }` | Words get a space; symbols do not. |
+| `space-unary-word-ops` | none (replaced) | not existing | absent | not configured | — | Discarded. Replaced by `space-unary-ops`. |
+| `standard/array-bracket-even-spacing` | none installed | not installed | absent | not configured | — | Discarded. Stylistic `array-bracket-spacing` is kept. |
+| `standard/computed-property-even-spacing` | none installed | not installed | absent | not configured | — | Discarded. Stylistic `computed-property-spacing` is kept. |
+| `standard/object-curly-even-spacing` | none installed | not installed | absent | not configured | — | Discarded. Stylistic `object-curly-spacing` is kept. |
+| `switch-colon-spacing` | `@stylistic/switch-colon-spacing` | not configured | absent | `error` | `{ before: false, after: true }` | `case 1: x`. |
+| `template-curly-spacing` | `@stylistic/template-curly-spacing` | not configured | absent | `error` | `never` | `${value}`, without spaces. |
+| `template-tag-spacing` | `@stylistic/template-tag-spacing` | not configured | absent | `error` | `never` | A tag followed directly by its template, without a space. |
+| `wrap-iife` | `@stylistic/wrap-iife` | not configured | absent | `error` | `inside` | `(function () {})()`. Kept as `inside`, not the Stylistic default. |
+| `wrap-regex` | `@stylistic/wrap-regex` exists | not configured | absent | not configured | — | Kept off. `/abc/.test(value)` is not wrapped. |
+| `yield-star-spacing` | `@stylistic/yield-star-spacing` | not configured | absent | `error` | `after` | `yield* values`. |
+
+Notes on the decisions:
+
+- **Import and export order:** `perfectionist/sort-named-imports` and `perfectionist/sort-named-exports` sort only the named members inside each import or export. They do not change import groups, paths, aliases or `type` modifiers. `import/order` remains the only rule for group order, and it is unchanged. In a combined test, both fixes ran in one pass and the second pass changed nothing. Sorting ignores case by default, so `Config` comes before `defaultDefineConfig`.
+- **Promises and `await`:** the core rules apply to JavaScript and to TypeScript without `typeCheckedConfig`. With `typeCheckedConfig`, the TypeScript versions replace them for `.ts`, `.tsx`, `.mts` and `.cts`, so no file has two implementations. The two versions disagree on purpose: an `async` function that returns a Promise or a thenable without `await` is reported by the core rule and accepted by the typed one, because returning an awaitable from an `async` function is not a missing `await`.
+- **Overlap with function declarations:** the examples `function executar() {}` and `const processar = async (valor) => valor` pass the spacing rules. `func-style` (`expression`, an existing rule) still rejects function declarations, and `require-await` reports `async (valor) => valor` when there is no `await`. Neither result is changed by this batch.
+- **Typed rules:** `@typescript-eslint/prefer-promise-reject-errors` and `@typescript-eslint/require-await` need type information, so they apply only with `typeCheckedConfig`. The base configuration does not use them.
+- **Discarded rules:** the 17 discarded rules are either absent from the installed packages or replaced by an approved Stylistic rule. No plugin was added. `simple-import-sort`, `paths` and `standard` are not installed.
+- **Autofix on this repository:** the new `quote-props` rule removed unnecessary quotes from keys in `base.ts` and `react.ts`, and the new Perfectionist rule reordered one import in `utils.ts`. These are the only changes made by autofix. No logic changed.
+- **`operator-linebreak` and `=`:** with `before` alone, the rule also treats the `=` of assignments and type aliases as an operator. `const v =` followed by a line break became `const v` and `= valor`, and the leading-pipe union `export type X =` became `= | 'a'`. The approved setting keeps `before` for every operator and adds `overrides: { '=': 'after' }`, so `=` stays at the end of the line. `overrides: { '=': 'none' }` was rejected because it would forbid line breaks next to `=`, which the previous behavior allowed. Checked cases: variable assignments, type aliases, generic defaults, conditional (`?`, `:`) and logical operators, with stable autofix.
+- **`require-await` in `override-swc.ts`:** the helper `onLoad` is no longer `async`. It only registers the callback with `build.onLoad`, synchronously. The callback passed to `build.onLoad` keeps `async`, because it awaits `transformSwc`. `onLoad` is not exported and its only caller does not await it, so no consumer depends on a `Promise` return. `tests/override-swc.test.mjs` checks that registration is synchronous and that the transformation still removes types and emits a sourcemap. The signature change itself is protected by the lint rule, not by that runtime test.
+
+### Rule review, batch 5
+
+This batch received 131 rule entries. They correspond to 84 unique rules. 65 entries use the legacy `@stylistic/js/*` namespace, which maps to the same `@stylistic/*` rules. Two `@babel/*` entries map to Stylistic rules that were already configured, and three `@blitz/*` entries belong to a plugin that is not installed. Seven rules were activated. The other 77 unique rules are either already active and unchanged (55), not activated (19), or discarded (3).
+
+The effective configuration was compared with the previous commit using `ESLint.calculateConfigForFile()` for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts` and `.cts`, under `baseConfig`, the React preset, the Next.js preset (with `reactNextConfig`), the Expo preset and `typeCheckedConfig`. Only the seven activated rules changed.
+
+#### Activated rules
+
+| Rule | Severity | Options | Applies to | Before |
+|---|---|---|---|---|
+| `@stylistic/indent-binary-ops` | `warn` | `2` | All files (`baseConfig`) | absent |
+| `@stylistic/padding-line-between-statements` | `warn` | `{ blankLine: 'always', prev: '*', next: 'return' }` | All files (`baseConfig`) | absent |
+| `@stylistic/member-delimiter-style` | `error` | `multiline: { delimiter: 'semi', requireLast: true }`, `singleline: { delimiter: 'semi', requireLast: false }` | `.ts`, `.tsx`, `.mts`, `.cts` | absent |
+| `@stylistic/type-generic-spacing` | `error` | none | `.ts`, `.tsx`, `.mts`, `.cts` | absent |
+| `@stylistic/type-named-tuple-spacing` | `error` | none | `.ts`, `.tsx`, `.mts`, `.cts` | absent |
+| `@stylistic/jsx-one-expression-per-line` | `warn` | `{ allow: 'single-line' }` | `.jsx`, `.tsx` in `reactNextConfig` | absent |
+| `@stylistic/jsx-tag-spacing` | `error` | `closingSlash: 'never'`, `beforeSelfClosing: 'always'`, `afterOpening: 'never'`, `beforeClosing: 'allow'` | `.jsx`, `.tsx` in `reactNextConfig` | absent |
+
+The four TypeScript-only rules do not need type information, so `projectService` is not enabled for them. `indent-binary-ops` and `padding-line-between-statements` are in `baseConfig`, so they apply to every file it covers. `@stylistic/indent-binary-ops` keeps the `warn` severity: it is not raised to `error` in this batch.
+
+#### Equivalent identifiers
+
+- `@stylistic/js/<rule>` (65 entries) is the same as `@stylistic/<rule>`. The legacy namespace is not registered.
+- `@stylistic/js/func-call-spacing` and `@stylistic/func-call-spacing` map to `@stylistic/function-call-spacing`, which keeps the `never` option.
+- `@babel/object-curly-spacing` maps to `@stylistic/object-curly-spacing`, and `@babel/semi` maps to `@stylistic/semi`. Both were already `error` with the approved options.
+- `@blitz/block-scope-case`, `@blitz/catch-error-name` and `@blitz/comment-syntax` belong to a plugin that is not installed. It was not added.
+
+#### Consolidated status
+
+| Status | Entries | Unique rules |
+|---|---|---|
+| Activated in this batch | 7 | 7 |
+| Already active and unchanged | 93 | 55 |
+| Not activated | 28 | 19 |
+| Discarded (plugin not installed) | 3 | 3 |
+| Total | 131 | 84 |
+
+Not activated, with the original names and the reason:
+
+| Rule | Original names | Reason |
+|---|---|---|
+| `@stylistic/line-comment-position` | `@stylistic/line-comment-position` | Not activated in this batch. |
+| `@stylistic/implicit-arrow-linebreak` | `@stylistic/implicit-arrow-linebreak`, `@stylistic/js/implicit-arrow-linebreak` | Not activated in this batch. |
+| `@stylistic/jsx-child-element-spacing` | `@stylistic/jsx-child-element-spacing` | `react/jsx-child-element-spacing` is already active, so no duplicate. |
+| `@stylistic/jsx-curly-newline` | `@stylistic/jsx-curly-newline` | `react/jsx-curly-newline` is already active. |
+| `@stylistic/jsx-curly-spacing` | `@stylistic/jsx-curly-spacing` | `react/jsx-curly-spacing` is already active. |
+| `@stylistic/jsx-equals-spacing` | `@stylistic/jsx-equals-spacing` | `react/jsx-equals-spacing` is already active. |
+| `@stylistic/jsx-indent` | `@stylistic/jsx-indent` | Obsolete implementation. `react/jsx-indent` is already active. |
+| `@stylistic/jsx-indent-props` | `@stylistic/jsx-indent-props` | `react/jsx-indent-props` is already active. |
+| `@stylistic/jsx-max-props-per-line` | `@stylistic/jsx-max-props-per-line` | `react/jsx-max-props-per-line` is already active. |
+| `@stylistic/jsx-props-no-multi-spaces` | `@stylistic/jsx-props-no-multi-spaces` | `@stylistic/no-multi-spaces` already covers props. |
+| `@stylistic/lines-around-comment` | `@stylistic/lines-around-comment`, `@stylistic/js/lines-around-comment` | Not activated in this batch. |
+| `@stylistic/newline-per-chained-call` | `@stylistic/newline-per-chained-call`, `@stylistic/js/newline-per-chained-call` | Not activated in this batch. |
+| `@stylistic/no-confusing-arrow` | `@stylistic/no-confusing-arrow`, `@stylistic/js/no-confusing-arrow` | Not activated in this batch. |
+| `@stylistic/no-extra-parens` | `@stylistic/no-extra-parens`, `@stylistic/js/no-extra-parens` | Not activated in this batch. |
+| `@stylistic/no-mixed-spaces-and-tabs` | `@stylistic/no-mixed-spaces-and-tabs`, `@stylistic/js/no-mixed-spaces-and-tabs` | Not activated in this batch. |
+| `@stylistic/nonblock-statement-body-position` | `@stylistic/nonblock-statement-body-position`, `@stylistic/js/nonblock-statement-body-position` | Not activated. It was also discarded in batch 4. |
+| `@stylistic/one-var-declaration-per-line` | `@stylistic/one-var-declaration-per-line`, `@stylistic/js/one-var-declaration-per-line` | Not activated. The `one-var` decision belongs to another batch. |
+| `@stylistic/type-annotation-spacing` | `@stylistic/type-annotation-spacing` | Kept off, because it overlaps with `key-spacing`. The coverage is documented below. |
+| `@stylistic/wrap-regex` | `@stylistic/wrap-regex`, `@stylistic/js/wrap-regex` | Kept off, as in batch 4. |
+
+#### Decisions
+
+- **React JSX rules are preserved.** The `react/jsx-*` rules remain the implementation for child spacing, curly spacing and newlines, equals spacing, indentation and props per line. Their Stylistic equivalents were not activated, to avoid duplicate diagnostics on the same tokens.
+- **`type-annotation-spacing` stays off.** `key-spacing` covers the colon in type members: type literals, property signatures in aliases, class properties and index signature keys. It does not cover variable annotations (`const x : number`), parameters (`(a : number)`), return types (`(): void`), function types (`(a : string) => void`), optional properties (`a ?: string`), method signatures (`m (): void`) or `as`. These gaps are documented here and were not closed by a new rule.
+- **`type` remains the preferred form.** `@typescript-eslint/consistent-type-definitions` still reports `interface`. `member-delimiter-style` checks only the members, so it does not change that preference.
+
+#### Scope
+
+- **JavaScript:** `indent-binary-ops` and `padding-line-between-statements` apply to every file in `baseConfig`.
+- **TypeScript:** `member-delimiter-style`, `type-generic-spacing` and `type-named-tuple-spacing` apply to `.ts`, `.tsx`, `.mts` and `.cts`. They are not type-aware.
+- **JSX:** `jsx-one-expression-per-line` and `jsx-tag-spacing` apply to `.jsx` and `.tsx` in `reactNextConfig`, which the React and Next.js presets use. `expoConfig` alone does not add them, as with the other Stylistic JSX rules.
+
+#### Interactions checked
+
+- **`indent-binary-ops` with `indent` and `operator-linebreak`.** A continuation inside parentheses with the wrong indentation is fixed by both rules, and the result is stable. An operator at the end of a line is moved by `operator-linebreak` and then indented by `indent-binary-ops`.
+- **`padding-line-between-statements` with `max-statements-per-line`, `padded-blocks` and comments.** A one-line body is split and receives the blank line in the same autofix. Padding at the start of a block is removed by `padded-blocks never`, and the blank line is placed before the `return`, not at the start of the block. When a comment precedes the `return`, the blank line goes before the comment.
+- **`member-delimiter-style` with `semi`, `key-spacing` and `consistent-type-definitions`.** Each rule reports its own problem on its own node, with no duplicate diagnostics.
+- **`type-named-tuple-spacing` with `key-spacing`.** Tuple labels are reported only by `type-named-tuple-spacing`.
+- **`jsx-tag-spacing` with `jsx-indent-props` and multi-line closing brackets.** `jsx-tag-spacing` accepts a closing bracket on its own line, and `jsx-indent-props` reports only the indentation of the props.
+
+#### Known conflict
+
+`type-generic-spacing` and `operator-linebreak` with `'=': 'after'` disagree about a line break inside a multi-line generic default:
+
+```ts
+export type Box<T
+  = string> = T;
+```
+
+The composed autofix produces `export type Box<T = string> = T;`. `type-generic-spacing` reports `<T =` followed by a line break as a spacing mismatch and removes the break. The result is stable: a second autofix changes nothing. The `=` override still applies when `type-generic-spacing` is off, which is verified in isolation. The approved rules were not changed. If the multi-line generic default form must be kept, this needs a decision.
+
+#### Compatibility
+
+- Projects that use the presets may see new warnings from `indent-binary-ops`, `padding-line-between-statements` and `jsx-one-expression-per-line`, and new errors from `member-delimiter-style`, `type-generic-spacing`, `type-named-tuple-spacing` and `jsx-tag-spacing`.
+- All seven rules have autofix. The fixes change whitespace, blank lines and separators only. For the TypeScript cases, the tests check that the fixed code has the same type structure.
+- No plugin was added. No global of `baseConfig` changed. No severity or option approved in batches 1 to 4 changed.
+- On this repository, autofix changed four files in `src/`, and only blank lines or semicolons in single-line type literals: `src/eslint-configs/utils.ts`, `src/tsup-plugins/fix-dist-imports.ts`, `src/tsup-plugins/override-swc.ts` and `src/types/tsup-plugin.ts`.
+
+### Rule review, batch 6: JSX duplicates
+
+Four JSX rules were enabled twice, once from `eslint-plugin-react` and once from `@stylistic/eslint-plugin`. This batch removes the four Stylistic entries from the `stylistic-jsx` block of `reactNextConfig`. The React rules stay with the same severities and options, and no other rule changed. Compared with batch 5, only 16 effective configuration entries changed: these four rules in `.jsx` and `.tsx`, for the React and Next.js presets.
+
+| Pair | Removed Stylistic rule | Kept React rule | Finding |
+|---|---|---|---|
+| `jsx-closing-bracket-location` | `@stylistic/jsx-closing-bracket-location`: `warn`, `tag-aligned` | `react/jsx-closing-bracket-location`: `error`, `line-aligned` | Reproduced conflict |
+| `jsx-closing-tag-location` | `@stylistic/jsx-closing-tag-location`: `warn`, `tag-aligned` | `react/jsx-closing-tag-location`: `error`, `line-aligned` | Reproduced conflict |
+| `jsx-first-prop-new-line` | `@stylistic/jsx-first-prop-new-line`: `error`, `multiline` | `react/jsx-first-prop-new-line`: `error`, `multiline` | Duplicate diagnostics |
+| `jsx-newline` | `@stylistic/jsx-newline`: `error`, `prevent: true` | `react/jsx-newline`: `error`, `prevent: true`, `allowMultilines: false` | Duplicate diagnostics |
+
+#### Reproduced conflict
+
+The two alignment rules disagree when the opening tag does not start its line. `line-aligned` aligns the closing bracket or tag with the line that contains the opening tag. `tag-aligned` aligns it with the `<` itself. Two minimal cases, with the previous configuration:
+
+```jsx
+render(<A
+  p="1"
+/>);
+```
+
+`react/jsx-closing-bracket-location` accepts this code. `@stylistic/jsx-closing-bracket-location` expects `/>` at the column of `<`. After the autofix, the Stylistic warning remained, so the composed configuration did not converge on this code. In the same runs, ESLint reported `ESLintCircularFixesWarning` (circular fixes) for JSX in these positions.
+
+```jsx
+render(<Painel>
+  Conteúdo
+    </Painel>);
+```
+
+The same happens with `jsx-closing-tag-location`: the Stylistic warning remained after the autofix, and React accepted the output.
+
+In an object literal, `{ x: <A⏎  p="1"⏎/> }`, the previous configuration left a trailing space before the closing brace. The React rule alone produced clean output.
+
+#### Observed duplicates
+
+For `jsx-first-prop-new-line` and `jsx-newline`, both rules report the same line and column, with the same message and the same autofix. For `jsx-closing-tag-location` the two rules also report the same position when the closing tag is misaligned in a multi-line element. For `jsx-closing-bracket-location` in a ternary whose opening tag starts mid-line, both rules report the same position, but they expect different columns.
+
+#### Potential divergence, not reproduced
+
+Whenever the opening tag does not start its line, the two alignments can differ. In the cases tested, `jsx-wrap-multilines` (with `parens-new-line`) wraps the expression in parentheses first, and then both alignments coincide. The divergence therefore appears only where the wrapping rule does not apply, such as call arguments, array elements and object values.
+
+#### Compatibility
+
+- Projects that use the React or Next.js presets see fewer diagnostics in JSX: the two `jsx-closing-*` warnings disappear, and the duplicate `jsx-first-prop-new-line` and `jsx-newline` errors are reported once.
+- The React errors remain, with the same severities and options, so the code that the React rules reject is still rejected.
+- The `expoConfig` preset alone is unchanged, and so is the `typeCheckedConfig` composition.
+- The tests are in `tests/lote6-jsx-duplicates.test.mjs`, with fixtures in `tests/fixtures/lote6/jsx-duplicates/`. They run the effective configuration and check the diagnostics, the autofix output and its second run.
+
+### Rule review, batch 6: `react/jsx-no-undef` and `no-undef`
+
+The React and Next.js presets enabled `react/jsx-no-undef` and `no-undef` at the same time for JavaScript and JSX files. Both reported an undefined JSX component at the same position, so each mistake produced two diagnostics. This batch turns `react/jsx-no-undef` off for `**/*.{js,jsx}`, and keeps `no-undef` on. Nothing else changed.
+
+#### Why `no-undef` is kept and `react/jsx-no-undef` is turned off in JavaScript
+
+The coverage was compared case by case, in `.js`, `.jsx` and `.tsx`, with the effective configuration:
+
+| Case | `.js` / `.jsx`: both on | `.js` / `.jsx`: `react` off (kept) | `.js` / `.jsx`: `no-undef` off |
+|---|---|---|---|
+| Undefined component, `<ComponenteInexistente />` | 2 diagnostics, same position | 1, `no-undef` | 1, `react` |
+| Undefined variable, `{variavelInexistente}` | 1, `no-undef` | 1, `no-undef` | **0, lost** |
+| Undefined member, `<UI.Button />` | 2 | 1, `no-undef` | 1, `react` |
+| Undefined prop value, `key={chave}` | 3 | 2, `no-undef` | 1, `react`, and `chave` is lost |
+| Component defined locally or imported | 0 | 0 | 0 |
+| Native element, `<section />` | 0 | 0 | 0 |
+| Fragment, nested scope, defined component | 0 | 0 | 0 |
+| Global declared with `/* global */` | 1, `react` | 0 | 0 |
+
+Turning `no-undef` off would lose undefined variables in JavaScript, so that alternative was rejected. Turning off `react/jsx-no-undef` in `.tsx` would lose undefined components, because `no-undef` is already off in TypeScript files. So `.tsx` keeps `react/jsx-no-undef`.
+
+#### Preserved per extension
+
+- `.js`, `.jsx`: `no-undef` is `error`, with the TypeScript-ESLint parser and the browser globals; `react/jsx-no-undef` is `off`. All of them come from the `react-js-undefined-identifiers` block, which is part of `reactNextConfig`.
+- `.tsx`: `react/jsx-no-undef` is `error`; `no-undef` is `off`, from the TypeScript block. This is unchanged.
+- `.ts`, `.mts`, `.cts`: `react/jsx-no-undef` is `error`, as before. These files cannot contain JSX, so the rule does not report anything there.
+- `.mjs`, `.cjs`: unchanged, so they keep both rules. See the residual cases below.
+
+#### Residual differences and limitations
+
+- **Declared globals.** `react/jsx-no-undef` has `allowGlobals` set to `false`, so it reports a component that is declared as a global. `no-undef` accepts declared globals. In `.js` and `.jsx` a declared global is no longer reported. This is a relaxation: it accepts a component that is really declared. `.tsx` is unchanged.
+- **`expoConfig` alone** reports an undefined component once, with `react/jsx-no-undef`, and an undefined variable with `no-undef`. There is no duplicate in that composition. This package does not change the Expo preset.
+- **`expoConfig` combined with `baseConfig`.** The duplicate appears in `.js` and `.jsx`: the component is reported by both rules in the same position. It is kept, because the Expo preset defines `react/jsx-no-undef` as `error` for all files.
+- **`expoConfig` placed after `reactNextConfig` in the same array, with `baseConfig`.** The Expo rule comes later and enables `react/jsx-no-undef` again in `.js` and `.jsx`. Consumers who combine them must put an override after `expoConfig`. Separate configs, as the README recommends for the monorepo case, avoid this.
+- **`.mjs` and `.cjs` with JSX** still report the component twice, because the override is limited to `.js` and `.jsx` as approved.
+
+#### `reactNextConfig` in JavaScript and JSX
+
+For `.js` and `.jsx` files, `reactNextConfig` now sets `no-undef` to `error` and uses the TypeScript-ESLint parser, and it turns `react/jsx-no-undef` off there. This makes the preset self-sufficient: it reports undefined components, members and variables without `baseConfig`. The parser is required, because `no-undef` only sees the names used in JSX when it runs with that parser. With the default parser, a `no-undef` rule alone reports variables but not components. A consumer project that installs the packed package and uses only `reactNextConfig` checks this behavior in `tests/consumers/react` (`eslint.standalone.config.mjs`).
+
+The measured results, with ESLint run on the same code, are:
+
+| Composition | Undefined component or member in `.js` / `.jsx` | Undefined variable in `.js` / `.jsx` | Undefined component in `.tsx` |
+|---|---|---|---|
+| `reactNextConfig` alone | reported once, by `no-undef` | reported once, by `no-undef` | reported by `react/jsx-no-undef` |
+| `baseConfig` alone | reported by `no-undef` | reported by `no-undef` | not reported (TypeScript compiler) |
+| `baseConfig` + `reactNextConfig` (recommended) | reported once, by `no-undef` | reported once, by `no-undef` | reported once, by `react/jsx-no-undef` |
+| Next.js documented (`baseConfig` + `reactNextConfig` + `nextConfig`) | reported once, by `no-undef` | reported once, by `no-undef` | reported once, by `react/jsx-no-undef` |
+| `expoConfig` alone | reported once, by `react/jsx-no-undef` | reported by `no-undef` | reported by `react/jsx-no-undef` |
+| `baseConfig` + `expoConfig` | reported twice in the same position (duplicate, kept) | reported by `no-undef` | reported by `react/jsx-no-undef` |
+| `baseConfig` + `reactNextConfig` + `expoConfig` | reported twice in the same position (duplicate, kept) | reported by `no-undef` | reported by `react/jsx-no-undef` |
+
+Components that are imported, defined in the same file, or native elements are not reported in any composition.
+
+`baseConfig` is still the recommended base for the rules that are not about JSX, such as the TypeScript and stylistic rules. The composition below is the one this README documents:
+
+```ts
+import { eslintConfigs } from '@mathbreder/eslint-config';
+
+export default eslintConfigs.defineConfig([
+  ...eslintConfigs.baseConfig,
+  ...eslintConfigs.reactNextConfig,
+]);
+```
+
+#### Browser globals in `.js` files
+
+`reactNextConfig` now also declares the browser globals (`globals.browser`) for `.js` files, as it already did for `.jsx` and `.tsx`. A React application uses `window`, `document` and `navigator` in plain modules too, so these names are no longer reported as undefined. The browser globals are available in every `.js` and `.jsx` file that receives the React preset, including files that run on the server, such as a server module with a `.js` extension. No server-specific override is provided. The change affects the composed configurations as follows:
+
+- **Base + React and Next.js, `.js`:** `window` and `document` were reported as undefined before. They are not reported now. Projects with these diagnostics see fewer errors. No rule changed in these compositions; only the globals did.
+- **React alone, `.js`:** `window`, `document` and `navigator` are not reported. Before the change, no rule reported them, because `no-undef` was not active in this composition.
+- **Base + React + Expo, `.js`:** the browser globals that the Expo preset does not already declare are added. No rule changed.
+- **`no-eval` in `.js` with the React preset:** `window.eval(...)` is now reported, as it already was in `.jsx` and `.tsx`. This is a new error for projects that use this call in `.js` files. The `no-eval` section of batch 3 describes the rule's dependence on declared globals.
+- **Expo alone, `baseConfig` alone, `typeCheckedConfig`, and `.ts`, `.tsx`, `.mts` and `.cts` in every composition:** unchanged.
+
+Compared with the previous commit, the effective configuration differs only in these places: `reactNextConfig` alone (`.js` and `.jsx`: parser, `no-undef`, and globals), and the browser globals added to `.js` in the React, Next.js and Base + React + Expo compositions. No other rule value changed.
+
+#### Tests
+
+- `tests/lote6-jsx-no-undef.test.mjs` runs 75 tests. They cover the 16 scenarios in `.js`, `.jsx` and `.tsx`, the fixtures in `tests/fixtures/lote6/jsx-no-undef/`, the effective configuration per composition and extension, the alternatives that were rejected, and the residual limitations above.
+- Mutation checks on the built output: reverting the deduplication (`react/jsx-no-undef` back to `error`) makes 19 of these tests fail, and turning `no-undef` off in the same block makes 24 fail.
+- Three expectations of earlier tests described the duplicate that this batch removes, and were updated to the new behavior: `tests/react-inherited.test.mjs` (`react/jsx-no-undef` is `off` in `case.jsx`, and `no-undef` covers it), and two assertions in `tests/lote6-jsx-duplicates.test.mjs` (in `.jsx`, `no-undef` reports the component once, and `react/jsx-no-undef` is `off`).
+
+### Rule review, batch 6: TypeScript and React rules
+
+This batch activates 50 rules: nine TypeScript rules that need no type information, 40 TypeScript rules that need type information, and one React rule. The effective configuration was compared with the previous commit with `ESLint.calculateConfigForFile()`, for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts` and `.cts`, under `baseConfig`, the React preset, the Next.js preset, the Expo preset, `typeCheckedConfig` and the combinations of these. Exactly these 50 rules changed, and no other rule value changed.
+
+#### Nine rules without type information
+
+They are in `baseConfig`, applied only to `.ts`, `.tsx`, `.mts` and `.cts`, and need no `projectService`.
+
+| Rule | Severity | Options | Autofix |
+|---|---|---|---|
+| `@typescript-eslint/ban-tslint-comment` | `error` | none | Removes the comment |
+| `@typescript-eslint/consistent-generic-constructors` | `warn` | `constructor` | Moves the type arguments to the constructor |
+| `@typescript-eslint/consistent-indexed-object-style` | `warn` | `record` | Converts to `Record` |
+| `@typescript-eslint/consistent-type-imports` | `warn` | `prefer: 'type-imports'`, `fixStyle: 'inline-type-imports'` | Writes `import { type X }` |
+| `@typescript-eslint/no-confusing-non-null-assertion` | `error` | none | Suggestion only |
+| `@typescript-eslint/no-invalid-void-type` | `error` | none | Suggestion only |
+| `@typescript-eslint/no-non-null-asserted-nullish-coalescing` | `error` | none | Suggestion only |
+| `@typescript-eslint/prefer-literal-enum-member` | `warn` | `allowBitwiseExpressions: true` | Suggestion only |
+| `@typescript-eslint/unified-signatures` | `warn` | none | Suggestion only |
+
+#### Forty rules with type information
+
+They are in `typeCheckedConfig`, which stays opt-in: it is not part of `baseConfig`, the React, Next.js or Expo presets. A project that does not use `typeCheckedConfig` gets none of these rules. Each rule requires type information, so `projectService` must find a `tsconfig.json` for each file.
+
+- **`error` (17):** `no-array-delete`, `no-duplicate-type-constituents`, `no-for-in-array`, `no-misused-spread`, `no-mixed-enums`, `no-unsafe-assignment`, `no-unsafe-call`, `no-unsafe-enum-assignment`, `no-unsafe-enum-comparison`, `no-unsafe-member-access`, `no-unsafe-return`, `no-unsafe-unary-minus`, `related-getter-setter-pairs`, `restrict-plus-operands`, `switch-exhaustiveness-check`, `unbound-method`, and `require-array-sort-compare` with `ignoreStringArrays: true`.
+- **`warn` (23):** `no-base-to-string`, `no-misused-promises`, `no-redundant-type-constituents`, `no-unnecessary-type-assertion`, `restrict-template-expressions`, `consistent-type-exports`, `no-confusing-void-expression` with `ignoreArrowShorthand: true`, `no-deprecated`, `no-generated-empty-object-type`, `no-meaningless-void-operator`, `no-unnecessary-template-expression`, `no-unnecessary-type-arguments`, `no-unnecessary-type-conversion`, `no-unnecessary-type-parameters`, `prefer-find`, `prefer-includes`, `prefer-optional-chain`, `prefer-readonly`, `prefer-reduce-type-parameter`, `prefer-return-this-type`, `prefer-string-starts-ends-with`, `return-await` with `error-handling-correctness-only`, and `use-unknown-in-catch-callback-variable`.
+
+#### One React rule
+
+`react/no-unsafe` is `warn`, with `checkAliases: true`. It is part of the React preset, in JSX and TSX only. Its effect with `checkAliases: true` is to report both the explicit `UNSAFE_` method name and the legacy name without the prefix. For example, `UNSAFE_componentWillMount` and `componentWillReceiveProps` are both reported. With `checkAliases: false`, only the `UNSAFE_` name is reported.
+
+The `expoConfig` preset explicitly sets `react/no-unsafe` to `off`. In a composition with `baseConfig`, `reactNextConfig` and `expoConfig`, the Expo block comes later and turns the rule off. This package does not change the Expo preset. A project that wants the rule in that composition must add it again after `expoConfig`.
+
+#### Interactions
+
+- **Promises.** `no-floating-promises` reports an unhandled promise statement, and `no-misused-promises` reports a promise used as a condition. Both report on different lines and do not duplicate each other. `return-await` with `error-handling-correctness-only` and `require-await` do not report a correct `async` function that returns a promise.
+- **Overloads.** `unified-signatures` and `adjacent-overload-signatures` can report the same overload, with different conditions. `unified-signatures` asks for a single signature, and `adjacent-overload-signatures` asks for the overloads to be adjacent. Neither changes the code when autofix runs, and the result is stable. This overlap is accepted, and neither rule was removed.
+- **Imports.** `consistent-type-imports` and `perfectionist/sort-named-imports` are fixed together in one pass, producing `import { type Alpha, type Zed }`. `no-duplicate-imports` still reports `import type` and `import { type }` from the same module, because no rule merges them. The developer must merge them.
+- **Autofix safety.** Rules that could change behavior, such as the `no-unsafe-*` rules, have no autofix. `prefer-find` only suggests `find` for `filter(...)[0]`. The autofix does not change the meaning of the code in the tested cases, and a second pass changes nothing.
+
+#### `strictNullChecks`
+
+The typed fixtures run with `strict: true` and with `strictNullChecks: false`. Both projects load the configuration and report the same rules, with one difference: `no-unsafe-assignment` reports a case that `strict` accepts when `strictBindCallApply` is off, because `bind` returns `any`. The configuration does not require `strictNullChecks`, and no `tsconfig.json` is changed.
+
+#### Limitations and residual cases
+
+- The React rule is off in a composition with `expoConfig` after `reactNextConfig`, as described above.
+- `prefer-find`, `prefer-literal-enum-member` and the nullish and void rules report, but offer suggestions instead of autofix.
+- `no-duplicate-imports` is not merged by the new import rules.
+
+#### Tests and validation
+
+- `tests/lote6-typescript-basic.test.mjs` covers the nine rules without type information: severity, scope, the expected reports, autofix, suggestions and the interactions.
+- `tests/lote6-typescript-typed.test.mjs` covers the forty typed rules: severity and scope, each rule reported at least once in a fixture that uses `strict: true` and in one that uses `strictNullChecks: false`, no report on valid code, autofix convergence, suggestion-only rules, and the promise interactions. The fixtures are in `tests/fixtures/lote6/typescript-typed/`, with their own `tsconfig.json` files.
+- `tests/lote6-react-rules.test.mjs` covers `react/no-unsafe`: scope, the Expo override, `checkAliases` on and off, and the JSX and TSX fixtures.
+- `tests/consumers/typescript` validates the packed package with a project that uses `strict: true` and a second project under `src/loose/` that uses `strictNullChecks: false`.
+- **Autofix convergence.** The typed suite runs the autofix on the original file, then runs it again on that output with the same `filePath`, so both runs use the same type information. The test fails if the second run changes the code, or if ESLint reports `ESLintCircularFixesWarning`. A control rule that never converges is used to check that this comparison detects a non-convergent fix. The remaining diagnostics are checked to have no autofix, and suggestions are not applied.
+- **Overlaps.** Diagnostics from different rules are classified in three ways. Same-rule duplicates must not exist. Pairs of different rules that start at the same position, or where one range is contained in the other on the same line, must be documented, and no two of them may offer an autofix at the same place. In the fixtures there are eleven documented overlaps, including the `unified-signatures` and `adjacent-overload-signatures` case, and each one must still occur, so the list cannot go stale.
+- **Mutation.** For each of the 50 rules, the test disables that rule through a derived configuration and runs the same coverage assertion as the suite. The assertion must fail, and it must name exactly that rule. In the batch 6 suites, 50 of 50 mutations are detected: 40 typed rules, 9 basic rules and `react/no-unsafe`. The production configuration is not changed for the mutations.
+- **Totals.** The full suite has 1042 tests and all pass. Build, lint and `tsc` pass. The effective configuration is unchanged against the batch 6 commit.
+
+#### Compatibility
+
+- Projects that use `typeCheckedConfig` may see new errors and warnings in TypeScript files. The 40 rules report unsafe `any` use, unnecessary assertions and type conversions, and `filter`, `indexOf` and `&&` patterns that have a more direct form. In the fixtures, 12 of the 40 rules produce an autofix, and no `no-unsafe-*` rule has one. The other rules report without an autofix, or with a suggestion only.
+- Projects that use only `baseConfig` may see new errors and warnings in TypeScript files for the nine rules without type information. Four are errors (`ban-tslint-comment`, `no-confusing-non-null-assertion`, `no-invalid-void-type` and `no-non-null-asserted-nullish-coalescing`), and five are warnings (`consistent-generic-constructors`, `consistent-indexed-object-style`, `consistent-type-imports`, `prefer-literal-enum-member` and `unified-signatures`).
+- Projects that use `reactNextConfig` may see a new warning for legacy lifecycle methods in class components.
+- No plugin was added, and no dependency was updated.
 
 ### TypeScript files
 

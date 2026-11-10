@@ -24,7 +24,7 @@ export type GetEslintImportConfigOptions = {
 
 export { importPlugin };
 
-const TYPESCRIPT_IMPORT_EXTENSIONS = ['.ts', '.cts', '.mts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
+const TYPESCRIPT_IMPORT_EXTENSIONS = [ '.ts', '.cts', '.mts', '.tsx', '.js', '.jsx', '.mjs', '.cjs' ];
 
 export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Config[] => {
   const extraPathGroups = opts?.pathGroups ?? [];
@@ -38,7 +38,7 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
         ...defaultPathGroups,
         ...extraPathGroups,
       ],
-      pathGroupsExcludedImportTypes: ['builtin'],
+      pathGroupsExcludedImportTypes: [ 'builtin' ],
       'newlines-between': 'always',
       alphabetize: {
         order: 'asc',
@@ -52,7 +52,7 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
   return [
     {
       name: 'eslint-import-resolver',
-      files: ['**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'],
+      files: [ '**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}' ],
       plugins: {
         import: importPlugin,
       },
@@ -67,9 +67,9 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
       // Import order & organization
         'import/order': importOrderRule,
         'import/no-unresolved': noUnresolvedIgnore.length > 0
-          ? ['error', { ignore: noUnresolvedIgnore }]
+          ? [ 'error', { ignore: noUnresolvedIgnore } ]
           : 'error',
-        'import/no-cycle': ['warn', { disableScc: true }],
+        'import/no-cycle': [ 'warn', { disableScc: true } ],
       },
     },
   ];

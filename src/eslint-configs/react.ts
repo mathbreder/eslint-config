@@ -4,8 +4,35 @@ import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 const { configs: reactHooksConfigs } = reactHooks;
+
+/**
+ * Generic link texts for `jsx-a11y/anchor-ambiguous-text`. The option replaces the
+ * plugin defaults, so they are repeated here first: `click here`, `here`, `link`,
+ * `a link` and `learn more`. The plugin compares the normalized text (lowercase,
+ * trimmed, collapsed spaces, and the punctuation `,.?¿!‽¡;:` removed), so case,
+ * spacing and that punctuation do not need separate entries.
+ */
+const AMBIGUOUS_LINK_WORDS = [
+  'click here',
+  'here',
+  'link',
+  'a link',
+  'learn more',
+  'clique aqui',
+  'aqui',
+  'clique',
+  'um link',
+  'saiba mais',
+  'leia mais',
+  'veja mais',
+  'mais',
+  'read more',
+  'more',
+  'click',
+];
 
 /**
  * React/Next.js specific ESLint configuration
@@ -13,17 +40,17 @@ const { configs: reactHooksConfigs } = reactHooks;
  */
 export const reactNextConfig = defineConfig([
   reactPlugin.configs.flat.recommended,
-  reactPlugin.configs.flat[ 'jsx-runtime' ],
+  reactPlugin.configs.flat['jsx-runtime'],
   reactHooksConfigs.flat.recommended,
   jsxA11yPlugin.flatConfigs.recommended,
   {
     name: 'react-jsx',
-    files: ['**/*.{jsx,tsx}'],
+    files: [ '**/*.{jsx,tsx}' ],
     plugins: {},
     settings: {
-      'react': {
-        'version': 'detect',
-        'defaultVersion': '19.2.0',
+      react: {
+        version: 'detect',
+        defaultVersion: '19.2.0',
       },
     },
     languageOptions: {
@@ -46,13 +73,13 @@ export const reactNextConfig = defineConfig([
           unnamedComponents: 'arrow-function',
         },
       ],
-      'react/jsx-boolean-value': [ 'error', 'never', { 'assumeUndefinedIsFalse': true } ],
+      'react/jsx-boolean-value': [ 'error', 'never', { assumeUndefinedIsFalse: true } ],
       'react/jsx-child-element-spacing': [ 'error' ],
       'react/jsx-closing-bracket-location': [ 'error', 'line-aligned' ],
       'react/jsx-closing-tag-location': [ 'error', 'line-aligned' ],
-      'react/jsx-curly-brace-presence': [ 'error', { 'props': 'never', 'children': 'never' } ],
+      'react/jsx-curly-brace-presence': [ 'error', { props: 'never', children: 'never' } ],
       'react/jsx-curly-newline': [ 'error' ],
-      'react/jsx-curly-spacing': [ 'error', { 'when': 'never', 'children': true } ],
+      'react/jsx-curly-spacing': [ 'error', { when: 'never', children: true } ],
       'react/jsx-equals-spacing': [ 'error', 'never' ],
       'react/jsx-first-prop-new-line': [ 'error', 'multiline' ],
       'react/jsx-fragments': [ 'error', 'syntax' ],
@@ -66,66 +93,86 @@ export const reactNextConfig = defineConfig([
       ],
       'react/jsx-key': [
         'error', {
-          'checkFragmentShorthand': true,
-          'checkKeyMustBeforeSpread': true,
-          'warnOnDuplicates': true,
+          checkFragmentShorthand: true,
+          checkKeyMustBeforeSpread: true,
+          warnOnDuplicates: true,
         },
       ],
-      'react/jsx-max-depth': [ 'warn', { 'max': 4 } ],
-      'react/jsx-max-props-per-line': [ 'warn', { 'maximum': { 'single': 3, 'multi': 1 } } ],
-      'react/jsx-newline': [ 'error', { 'prevent': true } ],
-      'react/jsx-no-duplicate-props': [ 'error', { 'ignoreCase': true } ],
+      'react/jsx-max-depth': [ 'warn', { max: 4 } ],
+      'react/jsx-max-props-per-line': [ 'warn', { maximum: { single: 3, multi: 1 } } ],
+      'react/jsx-newline': [ 'error', { prevent: true } ],
+      'react/jsx-no-duplicate-props': [ 'error', { ignoreCase: true } ],
       'react/jsx-no-constructed-context-values': [ 'error' ],
-      'react/no-unstable-nested-components': [ 'warn', { 'allowAsProps': true } ],
+      'react/no-unsafe': [
+        'warn',
+        {
+          checkAliases: true,
+        },
+      ],
+      'react/no-unstable-nested-components': [ 'warn', { allowAsProps: true } ],
       'react/prop-types': 'off',
-      'react/forbid-component-props': [ 'error', { 'forbid': [ 'style' ] } ],
-      'react/forbid-dom-props': [ 'error', { 'forbid': [ 'style' ] } ],
+      'react/forbid-component-props': [ 'error', { forbid: [ 'style' ] } ],
+      'react/forbid-dom-props': [ 'error', { forbid: [ 'style' ] } ],
 
       'react-hooks/static-components': 'off',
     },
   },
   {
     name: 'react-frontend-alerts',
-    files: ['**/*.{js,jsx,ts,tsx}'],
+    files: [ '**/*.{js,jsx,ts,tsx}' ],
     rules: {
       'no-alert': 'warn',
     },
   },
   {
     name: 'stylistic-jsx',
-    files: ['**/*.{jsx,tsx}'],
+    files: [ '**/*.{jsx,tsx}' ],
     plugins: {
       '@stylistic': stylistic,
     },
     rules: {
       // JSX specific stylistic rules
-      '@stylistic/jsx-closing-bracket-location': 1,
-      '@stylistic/jsx-closing-tag-location': 1,
-      '@stylistic/jsx-first-prop-new-line': [ 'error', 'multiline' ],
-      '@stylistic/jsx-newline': [
+      '@stylistic/jsx-one-expression-per-line': [ 'warn', { allow: 'single-line' } ],
+      '@stylistic/jsx-quotes': [ 'error', 'prefer-double' ],
+      '@stylistic/jsx-tag-spacing': [
         'error', {
-          'prevent': true,
+          closingSlash: 'never',
+          beforeSelfClosing: 'always',
+          afterOpening: 'never',
+          beforeClosing: 'allow',
         },
       ],
-      '@stylistic/jsx-quotes': [ 'error', 'prefer-double' ],
       '@stylistic/jsx-wrap-multilines': [
         'error', {
-          'declaration': 'parens-new-line',
-          'assignment': 'parens-new-line',
-          'return': 'parens-new-line',
-          'arrow': 'parens-new-line',
-          'condition': 'parens-new-line',
-          'logical': 'parens-new-line',
-          'prop': 'parens-new-line',
+          declaration: 'parens-new-line',
+          assignment: 'parens-new-line',
+          return: 'parens-new-line',
+          arrow: 'parens-new-line',
+          condition: 'parens-new-line',
+          logical: 'parens-new-line',
+          prop: 'parens-new-line',
         },
       ],
     },
   },
   {
     name: 'a11y-jsx',
-    files: ['**/*.{jsx,tsx}'],
+    files: [ '**/*.{jsx,tsx}' ],
     rules: {
       'jsx-a11y/no-noninteractive-element-interactions': 'off',
+      'jsx-a11y/anchor-ambiguous-text': [ 'warn', { words: AMBIGUOUS_LINK_WORDS } ],
+    },
+  },
+  {
+    name: 'react-js-undefined-identifiers',
+    files: [ '**/*.{js,jsx}' ],
+    languageOptions: {
+      parser: tseslint.parser,
+      globals: globals.browser,
+    },
+    rules: {
+      'no-undef': 'error',
+      'react/jsx-no-undef': 'off',
     },
   },
 ]);

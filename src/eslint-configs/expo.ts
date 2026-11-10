@@ -25,7 +25,7 @@ export const expoConfig = defineConfig([
   },
   {
     name: 'expo-react-hooks-project-decision',
-    files: ['**/*.{jsx,tsx}'],
+    files: [ '**/*.{jsx,tsx}' ],
     rules: {
       'react-hooks/static-components': 'off',
     },

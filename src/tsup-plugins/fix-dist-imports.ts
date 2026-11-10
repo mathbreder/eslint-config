@@ -14,6 +14,7 @@ const addJsExt = (code: string, baseDir: string) =>
     // check for folder index file
     const maybeIndex = `${spec}/index.js`;
     if (fs.existsSync(path.join(baseDir, maybeIndex))) return `${p1}${maybeIndex}${p3}`;
+
     return `${p1}${spec}.js${p3}`;
   });
 
@@ -23,6 +24,7 @@ const addCjsExt = (code: string, baseDir: string) =>
   code.replace(REQUIRE_REL, (_m: string, p1: string, spec: string, p3: string) => {
     if (/\.(mjs|cjs|js|json|node)$/.test(spec)) return `${p1}${spec.replace(/\.js$/, '.cjs')}${p3}`;
     if (fs.existsSync(path.join(baseDir, spec, 'index.cjs'))) return `${p1}${spec}/index.cjs${p3}`;
+
     return `${p1}${spec}.cjs${p3}`;
   });
 

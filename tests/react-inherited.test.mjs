@@ -26,8 +26,14 @@ for (const file of ['case.jsx', 'case.tsx']) {
   const config = await eslint.calculateConfigForFile(fixtureFile(file));
 
   for (const rule of INHERITED_REACT_RULES) {
-    test(`${rule} resolve como error em ${file} pelo preset recommended`, () => {
-      assert.equal(config.rules[rule]?.[0], 2);
+    const expectedSeverity = file === 'case.jsx' && rule === 'react/jsx-no-undef' ? 0 : 2;
+    test(`${rule} resolve como ${expectedSeverity === 0 ? 'off' : 'error'} em ${file} pelo preset recommended`, () => {
+      assert.equal(config.rules[rule]?.[0], expectedSeverity);
+    });
+  }
+  if (file === 'case.jsx') {
+    test('no-undef cobre componentes JSX indefinidos em case.jsx, substituindo react/jsx-no-undef', () => {
+      assert.equal(config.rules['no-undef']?.[0], 2);
     });
   }
 }

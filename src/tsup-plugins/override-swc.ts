@@ -32,18 +32,18 @@ const getJscConfig = ({ paths, ...params }: JscConfigParams): JscConfig => ({
   target: (String(params.target)).toLowerCase() as JscTarget,
 });
 
-const removeJsonTrailingComma = (jsonString: string): string => {
-  return jsonString.replace(/,(\s*(?:}|]))/g, '$1');
-};
+const removeJsonTrailingComma = (jsonString: string): string => jsonString.replace(/,(\s*(?:}|]))/g, '$1');
 
 const getTsConfigContent = (tsConfigPath: string): TsconfigRaw => {
   try {
     const filePath = path.resolve(process.cwd(), tsConfigPath);
     const content = fs.readFileSync(filePath, 'utf8');
     const cleanedContent = removeJsonTrailingComma(content);
+
     return JSON.parse(cleanedContent);
   } catch (e) {
     console.error(e);
+
     return {};
   }
 };
@@ -56,9 +56,7 @@ const transformSwc = (filePath: string, jsc: JscConfig) =>
     swcrc: false,
   });
 
-const getSwcPlugin = (options: EsbuildBuildOptions) => {
-  return options.plugins?.find((p: EsbuildPlugin) => p.name === 'swc');
-};
+const getSwcPlugin = (options: EsbuildBuildOptions) => options.plugins?.find((p: EsbuildPlugin) => p.name === 'swc');
 
 const getCode = (swcOutput: swc.Output, sourcePath: string) => {
   const returnData = { contents: swcOutput.code };
@@ -67,13 +65,15 @@ const getCode = (swcOutput: swc.Output, sourcePath: string) => {
     map.sources = map.sources.map(
       (source) => path.isAbsolute(source)
         ? path.relative(path.dirname(sourcePath), source)
-        : source);
+        : source,
+    );
     returnData.contents += `//# sourceMappingURL=data:application/json;base64,${Buffer.from(JSON.stringify(map)).toString('base64')}`;
   }
+
   return returnData;
 };
 
-const onLoad = async (build: EsbuildPluginBuild, tsConfig: TsconfigRaw) => {
+const onLoad = (build: EsbuildPluginBuild, tsConfig: TsconfigRaw) => {
   const filter = /\.[jt]sx?$/;
   build.onLoad({ filter }, async (args) => {
     const isTs = /\.tsx?$/.test(args.path);
@@ -85,6 +85,7 @@ const onLoad = async (build: EsbuildPluginBuild, tsConfig: TsconfigRaw) => {
       baseUrl: compilerOptions.baseUrl || '.',
     });
     const result = await transformSwc(args.path, jsc);
+
     return getCode(result, args.path);
   });
 };
