@@ -14,7 +14,6 @@ const run = (code, filename, ruleIds, config = baseConfig) => linter
   .filter((message) => ruleIds.includes(message.ruleId));
 const one = (code, filename, ruleId, config = baseConfig) => run(code, filename, [ruleId], config);
 const fixed = (code, filename, config = baseConfig) => linter.verifyAndFix(code, config, virtualFile(filename));
-const effective = () => Object.assign({}, ...baseConfig.filter((cfg) => cfg.rules).map((cfg) => cfg.rules));
 
 const STYLISTIC_APPROVED = {
   '@stylistic/multiline-ternary': ['error', 'always-multiline'],
@@ -78,9 +77,10 @@ test('regras preservadas continuam com o comportamento aprovado, na configuraç�
   assert.deepEqual(ts['@typescript-eslint/no-empty-function'][1], { allow: ['overrideMethods', 'decoratedFunctions'] });
 });
 
-test('regras legadas e removidas não são configuradas por este lote', () => {
-  const rules = effective();
-  for (const name of ['no-spaced-func', 'no-space-before-semi', 'no-comma-dangle', 'no-new-symbol', 'no-reserved-keys', 'no-arrow-condition', 'no-confusing-arrow', 'newline-per-chained-call', 'no-extra-parens', 'no-mixed-spaces-and-tabs']) {
+test('regras legadas e removidas não são configuradas por este lote, na configuração efetiva de JS e TS', async () => {
+  const js = await effectiveAt('probe.js');
+  const ts = await effectiveAt('probe.ts');
+  for (const rules of [js, ts]) for (const name of ['no-spaced-func', 'no-space-before-semi', 'no-comma-dangle', 'no-new-symbol', 'no-reserved-keys', 'no-arrow-condition', 'no-confusing-arrow', 'newline-per-chained-call', 'no-extra-parens', 'no-mixed-spaces-and-tabs']) {
     assert.equal(rules[name], undefined, name);
     assert.equal(rules[`@stylistic/${name}`], undefined, `@stylistic/${name}`);
   }
@@ -143,7 +143,7 @@ test('no-eval: eval direto, referência e chamada indireta são proibidos', () =
   assert.equal(one("(0, eval)('x');\n", 'ev-indirect.js', 'no-eval').length, 1);
 });
 
-test('no-eval: LIMITAÇÃO documentada: window.eval não é reportado pela regra de core', () => {
+test('no-eval: window.eval não é reportado no baseConfig porque window não é global declarada', () => {
   assert.equal(one("window.eval('x');\n", 'ev-window.js', 'no-eval').length, 0);
 });
 

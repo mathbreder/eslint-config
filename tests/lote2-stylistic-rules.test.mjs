@@ -119,7 +119,7 @@ test('max-statements-per-line: uma instrução por linha', () => {
   assert.equal(bad[0].severity, 2);
 });
 
-test('CONFLITO DOCUMENTADO: max-statements-per-line rejeita o if de uma linha que brace-style aceita', () => {
+test('SOBREPOSIÇÃO DOCUMENTADA: max-statements-per-line rejeita o if de uma linha que brace-style aceita', () => {
   const code = 'if (a) { b(); }\n';
   assert.equal(residual(code, 'msl-brace.js', ['@stylistic/brace-style']).length, 0, 'brace-style aceita o bloco em linha (allowSingleLine)');
   const msl = residual(code, 'msl-brace.js', ['@stylistic/max-statements-per-line']);
@@ -127,7 +127,7 @@ test('CONFLITO DOCUMENTADO: max-statements-per-line rejeita o if de uma linha qu
   assert.equal(msl[0].message, 'This line has 2 statements. Maximum allowed is 1.');
 });
 
-test('CONFLITO DOCUMENTADO: a regra não é reescrita sozinha, então o autofix não resolve o conflito', () => {
+test('SOBREPOSIÇÃO DOCUMENTADA: nenhuma das duas regras reescreve o bloco em linha, então o autofix não o altera', () => {
   const code = 'if (a) { b(); }\n';
   assert.equal(fixed(code, 'msl-brace-fix.js').output, code);
 });

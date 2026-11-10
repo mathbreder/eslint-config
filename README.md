@@ -327,7 +327,7 @@ This batch reviewed 21 rules. The status below is the effective configuration, c
 | `keyword-spacing` | `@stylistic/keyword-spacing` | `baseConfig` | absent | `error`, `{ before: true, after: true }` | Space around keywords such as `if`, `else`, `try` and `catch`. |
 | `linebreak-style` | `@stylistic/linebreak-style` | `baseConfig` | `error`, `unix` | `error`, `unix` | Preserved. |
 | `lines-around-comment` | `@stylistic/lines-around-comment` | not configured | absent | absent | Kept off. Does not force blank lines around comments. |
-| `max-statements-per-line` | `@stylistic/max-statements-per-line` | `baseConfig` | absent | `error`, `{ max: 1 }` | One statement per line. Conflicts with `brace-style` in one case; see below. |
+| `max-statements-per-line` | `@stylistic/max-statements-per-line` | `baseConfig` | absent | `error`, `{ max: 1 }` | One statement per line. Differs from `brace-style` on single-line blocks; see below. |
 
 Notes on the decisions:
 
@@ -336,7 +336,7 @@ Notes on the decisions:
 - **Kept off or dispensed:** the removed rules `generator-star` and `indent-legacy`, `i18next/no-literal-string`, the Expo rules `import/default` and `import/named`, the rules left off by decision, and the React rules that the React preset already sets to `off`.
 - **Autofix:** the package source had one violation, from `function-paren-newline`, fixed by autofix in `override-swc.ts`. No other rule in this batch produced violations in the package source.
 - **`jsx-a11y/anchor-ambiguous-text`:** the React preset sets `warn` for `.jsx` and `.tsx` files, with this list: the plugin defaults (`click here`, `here`, `link`, `a link`, `learn more`), then the Portuguese texts `clique aqui`, `aqui`, `clique`, `um link`, `saiba mais`, `leia mais`, `veja mais` and `mais`, then the English texts `read more`, `more` and `click`. The plugin compares the text in lowercase, trimmed, with collapsed spaces and without the punctuation `,.?¿!‽¡;:`, so case and spacing variations are covered without extra entries. Other punctuation, such as `…` or `-`, is not removed by the plugin, so `clique aqui…` is not reported. Descriptive text and descriptive `aria-label` values are not reported. This list was defined from common generic link texts; it should be confirmed for your projects before publication.
-- **Known conflict, `max-statements-per-line` and `brace-style`:** `brace-style` with `allowSingleLine: true` accepts `if (a) { b(); }`. `max-statements-per-line` with `max: 1` counts the `if` and the inner `b();` as two statements on the same line, and rejects it. Neither rule has an autofix that resolves it, so the conflict is kept and covered by tests as documented behavior. A possible fix is `ignoredNodes: ['IfStatement']` on `max-statements-per-line`. It accepts the single-line form but changes what the rule measures, so it needs a decision before it is applied.
+- **Overlap, `max-statements-per-line` and `brace-style` (not a technical conflict):** `brace-style` with `allowSingleLine: true` accepts `if (a) { b(); }`, and `max-statements-per-line` with `max: 1` rejects it, because it counts the `if` and `b();` as two statements on one line. Both rules report nothing for the multiline form `if (a) {` / `  b();` / `}`, which satisfies both, so there is no code that cannot be made compliant. Neither rule rewrites the single-line block, so autofix leaves it unchanged and it does not oscillate. The rules disagree only about the single-line form. The configuration is unchanged. A possible change is `ignoredNodes: ['IfStatement']` on `max-statements-per-line`, which would accept the single-line form and changes what the rule measures, so it needs a decision.
 
 ### Rule review, batch 3
 
@@ -347,12 +347,12 @@ This batch reviewed 25 rules. The table gives the effective configuration before
 | `multiline-ternary` | `@stylistic/multiline-ternary` | `baseConfig` | absent | `error`, `always-multiline` | Multiline ternaries keep one line break per part. |
 | `new-parens` | `@stylistic/new-parens` | `baseConfig` | absent | `error`, `always` | `new Foo()`, with parentheses. |
 | `newline-per-chained-call` | `@stylistic/newline-per-chained-call` | not configured | absent | absent | Not enforced. Long chains on one line are allowed. |
-| `no-array-constructor` | `@typescript-eslint/no-array-constructor` (TS); core off in TS | `baseConfig` (TS block) | TS `error` | TS `error` | Preserved. |
+| `no-array-constructor` | `@typescript-eslint/no-array-constructor` in all files; core off in TS and not enabled in JS | `baseConfig` | TS `error` | TS `error` | Preserved. The TypeScript version also applies to `.js`, `.jsx`, `.mjs` and `.cjs`, with no duplicate diagnostic. |
 | `no-arrow-condition` | none | not available | absent | absent | Not in Stylistic or core. Covered by the batch 1 arrow rules. |
 | `no-comma-dangle` | `@stylistic/comma-dangle` | `baseConfig` | `error`, `always-multiline` | `error`, `always-multiline` | Replaced by the Stylistic rule approved in batch 1; not added. |
 | `no-confusing-arrow` | `@stylistic/no-confusing-arrow` | not configured | absent | absent | Not enabled in this batch. Batch 1 keeps `arrow-parens` and `arrow-spacing`. |
 | `no-empty-function` | `@typescript-eslint/no-empty-function` | `baseConfig` (TS block) | `warn`, allow `overrideMethods`, `decoratedFunctions` | same | Preserved. Test files keep their existing override. |
-| `no-eval` | `no-eval` (core) | `baseConfig` | absent | `error` | Blocks `eval`. Limitation: `window.eval(...)` is not reported by the core rule. |
+| `no-eval` | `no-eval` (core) | `baseConfig` | absent | `error` | Blocks `eval`, `globalThis.eval`, `global.eval` and aliases such as `const f = eval`. `window.eval(...)` is reported only where `window` is a declared global: the React preset in `.jsx`/`.tsx`, the Expo preset, or a configuration with browser globals. See the note below. |
 | `no-extra-parens` | `@stylistic/no-extra-parens` | not configured | absent | absent | Kept off, so useful parentheses stay. |
 | `no-floating-decimal` | `@stylistic/no-floating-decimal` | `baseConfig` | absent | `error` | `0.5`, not `.5`. |
 | `no-implied-eval` | `no-implied-eval` (core); `@typescript-eslint/no-implied-eval` in `typeCheckedConfig` | `baseConfig`, `typeCheckedConfig` | absent | `error` (core), TS `error` in typed files | Blocks strings passed to `setTimeout`/`setInterval`. The typed version needs type information, so the core rule stays in files without it. |
@@ -377,8 +377,10 @@ Notes on the decisions:
 - **Behaviors checked in TypeScript:** an interface used before its declaration is accepted (the TS rule ignores type references by default). Enums and classes used before their declaration are reported. A constructor with parameter properties, a `private` constructor and a constructor with logic are accepted. A constructor that only calls `super` is reported.
 - **Replaced or deprecated rules:** `no-spaced-func`, `no-space-before-semi` and `no-comma-dangle` are covered by batch 1 and batch 2 rules; `no-new-symbol` is covered by `no-new-native-nonconstructor`. The core versions are not registered.
 - **Dispensed rules:** `no-arrow-condition`, `no-reserved-keys` and `newline-per-chained-call` (not enforced). `no-confusing-arrow` and `no-extra-parens` stay off.
-- **Preserved rules:** `no-array-constructor` (TS), `no-empty-function` (TS, warn), `no-multi-spaces` and `no-trailing-spaces`.
-- **Known conflict, `max-statements-per-line` and `brace-style`:** described in batch 2. It does not change in this batch.
+- **Preserved rules:** `no-array-constructor` (TypeScript version in all files), `no-empty-function` (TS, warn), `no-multi-spaces` and `no-trailing-spaces`.
+- **`no-eval` and globals:** the core rule reads the global scope. It checks `window.eval` only if `window` is declared, and `globalThis`/`global` are reported without a declaration because they are standard or Node globals. `baseConfig` declares only Node and Jest globals, so `window.eval(...)` in `.js` or `.ts` is not reported. The typed configuration does not change this. Adding `window` to the base globals would change behavior for every consumer and needs a decision.
+- **Defaults added by ESLint:** `no-use-before-define` (core) and `@typescript-eslint/no-use-before-define` receive defaults such as `enums`, `typedefs` and `ignoreTypeReferences`. The approved options are the three in the table. The others are defaults, not extra configuration.
+- **Overlap, `max-statements-per-line` and `brace-style`:** described in batch 2. It is not a technical conflict, and it does not change in this batch.
 
 ### TypeScript files
 
