@@ -25,6 +25,7 @@ Framework requirements, which apply only when you use that preset:
 Other requirements:
 
 - ESLint 9.35 or newer, flat config only. 9.35 is the minimum because of the `preserve-caught-error` rule. See [Compatibility policy](#compatibility-policy) for the ESLint 9 line.
+- `typescript-eslint` `^8.72.1` (required peer). `baseConfig` uses its parser for every file. `reactNextConfig` uses the same parser for `.js` and `.jsx` files, so it also needs `typescript-eslint` when it is used without `baseConfig`.
 - TypeScript `>=4.8.4 <6.1.0` when you use TypeScript. This is the range supported by `typescript-eslint` 8.72.
 - `eslint-config-expo` `^58.0.4` (optional peer) when you use `expoConfig`. Expo 10 is no longer supported by this package version.
 - `@next/eslint-plugin-next` `^16.4.5` (optional peer) when you use `nextConfig`.
@@ -125,7 +126,7 @@ export default eslintConfigs.defineConfig([
 Presets available in `eslintConfigs`:
 
 - `baseConfig`: TypeScript, stylistic and perfectionist rules, plus general ESLint rules.
-- `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects, together with `baseConfig`. For JavaScript and JSX files it does not detect undefined identifiers by itself. See [Rule review, batch 6: `react/jsx-no-undef` and `no-undef`](#rule-review-batch-6-reactjsx-no-undef-and-no-undef).
+- `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects. For JavaScript and JSX files it also enables `no-undef` and the browser globals, so it detects undefined identifiers without `baseConfig`. See [Rule review, batch 6: `react/jsx-no-undef` and `no-undef`](#rule-review-batch-6-reactjsx-no-undef-and-no-undef).
 - `typeCheckedConfig`: opt-in rules that need type information. See [Type-checked rules](#type-checked-rules-opt-in).
 
 Opt-in presets, not included in `eslintConfigs`:
@@ -354,7 +355,7 @@ This batch reviewed 25 rules. The table gives the effective configuration before
 | `no-comma-dangle` | `@stylistic/comma-dangle` | `baseConfig` | `error`, `always-multiline` | `error`, `always-multiline` | Replaced by the Stylistic rule approved in batch 1; not added. |
 | `no-confusing-arrow` | `@stylistic/no-confusing-arrow` | not configured | absent | absent | Not enabled in this batch. Batch 1 keeps `arrow-parens` and `arrow-spacing`. |
 | `no-empty-function` | `@typescript-eslint/no-empty-function` | `baseConfig` (TS block) | `warn`, allow `overrideMethods`, `decoratedFunctions` | same | Preserved. Test files keep their existing override. |
-| `no-eval` | `no-eval` (core) | `baseConfig` | absent | `error` | Blocks `eval`, `globalThis.eval`, `global.eval` and aliases such as `const f = eval`. `window.eval(...)` is reported only where `window` is a declared global: the React preset in `.jsx`/`.tsx`, the Expo preset, or a configuration with browser globals. See the note below. |
+| `no-eval` | `no-eval` (core) | `baseConfig` | absent | `error` | Blocks `eval`, `globalThis.eval`, `global.eval` and aliases such as `const f = eval`. `window.eval(...)` is reported only where `window` is a declared global: the React preset in `.js`, `.jsx` and `.tsx`, the Expo preset, or a configuration with browser globals. See the note below. |
 | `no-extra-parens` | `@stylistic/no-extra-parens` | not configured | absent | absent | Kept off, so useful parentheses stay. |
 | `no-floating-decimal` | `@stylistic/no-floating-decimal` | `baseConfig` | absent | `error` | `0.5`, not `.5`. |
 | `no-implied-eval` | `no-implied-eval` (core); `@typescript-eslint/no-implied-eval` in `typeCheckedConfig` | `baseConfig`, `typeCheckedConfig` | absent | `error` (core), TS `error` in typed files | Blocks strings passed to `setTimeout`/`setInterval`. The typed version needs type information, so the core rule stays in files without it. |
@@ -613,7 +614,7 @@ Turning `no-undef` off would lose undefined variables in JavaScript, so that alt
 
 #### Preserved per extension
 
-- `.js`, `.jsx`: `no-undef` is `error`; `react/jsx-no-undef` is `off`, from the override.
+- `.js`, `.jsx`: `no-undef` is `error`, with the TypeScript-ESLint parser and the browser globals; `react/jsx-no-undef` is `off`. All of them come from the `react-js-undefined-identifiers` block, which is part of `reactNextConfig`.
 - `.tsx`: `react/jsx-no-undef` is `error`; `no-undef` is `off`, from the TypeScript block. This is unchanged.
 - `.ts`, `.mts`, `.cts`: `react/jsx-no-undef` is `error`, as before. These files cannot contain JSX, so the rule does not report anything there.
 - `.mjs`, `.cjs`: unchanged, so they keep both rules. See the residual cases below.
@@ -626,13 +627,15 @@ Turning `no-undef` off would lose undefined variables in JavaScript, so that alt
 - **`expoConfig` placed after `reactNextConfig` in the same array, with `baseConfig`.** The Expo rule comes later and enables `react/jsx-no-undef` again in `.js` and `.jsx`. Consumers who combine them must put an override after `expoConfig`. Separate configs, as the README recommends for the monorepo case, avoid this.
 - **`.mjs` and `.cjs` with JSX** still report the component twice, because the override is limited to `.js` and `.jsx` as approved.
 
-#### `reactNextConfig` alone
+#### `reactNextConfig` in JavaScript and JSX
 
-`reactNextConfig` does not include `no-undef`, and it turns `react/jsx-no-undef` off for `.js` and `.jsx`. So in those files, a project that uses `reactNextConfig` without `baseConfig` has no rule that reports an undefined component or variable. The measured results, with `ESLint.calculateConfigForFile()` and the rules run on the same code, are:
+For `.js` and `.jsx` files, `reactNextConfig` now sets `no-undef` to `error` and uses the TypeScript-ESLint parser, and it turns `react/jsx-no-undef` off there. This makes the preset self-sufficient: it reports undefined components, members and variables without `baseConfig`. The parser is required, because `no-undef` only sees the names used in JSX when it runs with that parser. With the default parser, a `no-undef` rule alone reports variables but not components.
 
-| Composition | Undefined component in `.js` / `.jsx` | Undefined variable in `.js` / `.jsx` | Undefined component in `.tsx` |
+The measured results, with ESLint run on the same code, are:
+
+| Composition | Undefined component or member in `.js` / `.jsx` | Undefined variable in `.js` / `.jsx` | Undefined component in `.tsx` |
 |---|---|---|---|
-| `reactNextConfig` alone | not reported | not reported | reported by `react/jsx-no-undef` |
+| `reactNextConfig` alone | reported once, by `no-undef` | reported once, by `no-undef` | reported by `react/jsx-no-undef` |
 | `baseConfig` alone | reported by `no-undef` | reported by `no-undef` | not reported (TypeScript compiler) |
 | `baseConfig` + `reactNextConfig` (recommended) | reported once, by `no-undef` | reported once, by `no-undef` | reported once, by `react/jsx-no-undef` |
 | Next.js documented (`baseConfig` + `reactNextConfig` + `nextConfig`) | reported once, by `no-undef` | reported once, by `no-undef` | reported once, by `react/jsx-no-undef` |
@@ -640,9 +643,9 @@ Turning `no-undef` off would lose undefined variables in JavaScript, so that alt
 | `baseConfig` + `expoConfig` | reported twice in the same position (duplicate, kept) | reported by `no-undef` | reported by `react/jsx-no-undef` |
 | `baseConfig` + `reactNextConfig` + `expoConfig` | reported twice in the same position (duplicate, kept) | reported by `no-undef` | reported by `react/jsx-no-undef` |
 
-Components that are imported, defined in the same file, used as properties of a defined object, or native elements are not reported in any composition. Undefined members (`<UI.Button />`) are reported in the same way as undefined components.
+Components that are imported, defined in the same file, or native elements are not reported in any composition.
 
-Because of this, `reactNextConfig` must be combined with `baseConfig` for JavaScript and JSX files. The recommended composition is:
+`baseConfig` is still the recommended base for the rules that are not about JSX, such as the TypeScript and stylistic rules. The composition below is the one this README documents:
 
 ```ts
 import { eslintConfigs } from '@mathbreder/eslint-config';
@@ -653,12 +656,22 @@ export default eslintConfigs.defineConfig([
 ]);
 ```
 
-This composition is what the rest of this README documents. The table does not show that `reactNextConfig` alone is equivalent to it: it is not, for JavaScript and JSX.
+#### Browser globals in `.js` files
+
+`reactNextConfig` now also declares the browser globals (`globals.browser`) for `.js` files, as it already did for `.jsx` and `.tsx`. A React application uses `window`, `document` and `navigator` in plain modules too, so these names are no longer reported as undefined. The change affects the composed configurations as follows:
+
+- **Base + React and Next.js, `.js`:** `window` and `document` were reported as undefined before. They are not reported now. Projects with these diagnostics see fewer errors. No rule changed in these compositions; only the globals did.
+- **React alone, `.js`:** `window`, `document` and `navigator` are not reported. Before the change, no rule reported them, because `no-undef` was not active in this composition.
+- **Base + React + Expo, `.js`:** the browser globals that the Expo preset does not already declare are added. No rule changed.
+- **`no-eval` in `.js` with the React preset:** `window.eval(...)` is now reported, as it already was in `.jsx` and `.tsx`. This is a new error for projects that use this call in `.js` files. The `no-eval` section of batch 3 describes the rule's dependence on declared globals.
+- **Expo alone, `baseConfig` alone, `typeCheckedConfig`, and `.ts`, `.tsx`, `.mts` and `.cts` in every composition:** unchanged.
+
+Compared with the previous commit, the effective configuration differs only in these places: `reactNextConfig` alone (`.js` and `.jsx`: parser, `no-undef`, and globals), and the browser globals added to `.js` in the React, Next.js and Base + React + Expo compositions. No other rule value changed.
 
 #### Tests
 
-- `tests/lote6-jsx-no-undef.test.mjs` runs 72 tests. They cover the 16 scenarios in `.js`, `.jsx` and `.tsx`, the fixtures in `tests/fixtures/lote6/jsx-no-undef/`, the effective configuration per composition and extension, the alternatives that were rejected, and the residual limitations above.
-- Mutation check: turning the override back to `error` makes 16 of these tests fail.
+- `tests/lote6-jsx-no-undef.test.mjs` runs 75 tests. They cover the 16 scenarios in `.js`, `.jsx` and `.tsx`, the fixtures in `tests/fixtures/lote6/jsx-no-undef/`, the effective configuration per composition and extension, the alternatives that were rejected, and the residual limitations above.
+- Mutation checks on the built output: reverting the deduplication (`react/jsx-no-undef` back to `error`) makes 19 of these tests fail, and turning `no-undef` off in the same block makes 24 fail.
 - Three expectations of earlier tests described the duplicate that this batch removes, and were updated to the new behavior: `tests/react-inherited.test.mjs` (`react/jsx-no-undef` is `off` in `case.jsx`, and `no-undef` covers it), and two assertions in `tests/lote6-jsx-duplicates.test.mjs` (in `.jsx`, `no-undef` reports the component once, and `react/jsx-no-undef` is `off`).
 
 ### TypeScript files

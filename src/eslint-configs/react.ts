@@ -4,6 +4,7 @@ import jsxA11yPlugin from 'eslint-plugin-jsx-a11y';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 const { configs: reactHooksConfigs } = reactHooks;
 
@@ -157,9 +158,14 @@ export const reactNextConfig = defineConfig([
     },
   },
   {
-    name: 'react-jsx-no-undef-deduplication',
+    name: 'react-js-undefined-identifiers',
     files: [ '**/*.{js,jsx}' ],
+    languageOptions: {
+      parser: tseslint.parser,
+      globals: globals.browser,
+    },
     rules: {
+      'no-undef': 'error',
       'react/jsx-no-undef': 'off',
     },
   },

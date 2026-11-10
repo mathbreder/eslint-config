@@ -271,16 +271,16 @@ const VARIABLE = 'const App = () => (\n  <div>{variavelInexistente}</div>\n);\n'
 const MEMBER = 'const App = () => <UI.Button />;\n';
 const LOCAL = 'const Painel = () => <div />;\nconst App = () => <Painel />;\n';
 
-test('react isolado (sem baseConfig): nenhuma regra detecta componente inexistente em .js e .jsx', () => {
+test('react isolado (sem baseConfig): detecta componente e membro inexistentes em .js e .jsx, por no-undef', () => {
   for (const extension of [ 'js', 'jsx' ]) {
-    assert.deepEqual(messagesOf(reactIsolated, COMPONENT, virtual(`lote6-iso.${extension}`)), [], extension);
-    assert.deepEqual(messagesOf(reactIsolated, MEMBER, virtual(`lote6-iso.${extension}`)), [], extension);
+    assert.deepEqual(messagesOf(reactIsolated, COMPONENT, virtual(`lote6-iso.${extension}`)), [ [ 'no-undef', 1, 20 ] ], extension);
+    assert.deepEqual(messagesOf(reactIsolated, MEMBER, virtual(`lote6-iso.${extension}`)), [ [ 'no-undef', 1, 20 ] ], extension);
   }
 });
 
-test('react isolado (sem baseConfig): nenhuma regra detecta variável inexistente em .js e .jsx', () => {
+test('react isolado (sem baseConfig): detecta variável inexistente em .js e .jsx, por no-undef', () => {
   for (const extension of [ 'js', 'jsx' ]) {
-    assert.deepEqual(messagesOf(reactIsolated, VARIABLE, virtual(`lote6-iso.${extension}`)), [], extension);
+    assert.deepEqual(messagesOf(reactIsolated, VARIABLE, virtual(`lote6-iso.${extension}`)), [ [ 'no-undef', 2, 9 ] ], extension);
   }
 });
 
@@ -288,12 +288,37 @@ test('react isolado: componente inexistente em .tsx continua reportado por react
   assert.deepEqual(messagesOf(reactIsolated, COMPONENT, virtual('lote6-iso.tsx')), [ [ 'react/jsx-no-undef', 1, 20 ] ]);
 });
 
-test('react isolado: a regra react/jsx-no-undef está off em .js e .jsx, por causa do override de deduplicação', async () => {
+test('react isolado: em .js e .jsx, react/jsx-no-undef está off, no-undef é error, e o parser é o do TypeScript-ESLint', async () => {
   for (const extension of [ 'js', 'jsx' ]) {
     const rules = await effectiveRules(reactIsolated, virtual(`x.${extension}`));
     assert.equal(severityOf(rules, 'react/jsx-no-undef'), SEV.off, extension);
-    assert.equal(severityOf(rules, 'no-undef'), 'absent', extension);
+    assert.equal(severityOf(rules, 'no-undef'), SEV.error, extension);
+    const eslint = new ESLint({ cwd: root, overrideConfig: defineConfig(reactIsolated), overrideConfigFile: true });
+    const computed = await eslint.calculateConfigForFile(virtual(`x.${extension}`));
+    assert.equal(computed.languageOptions.parser.meta?.name, 'typescript-eslint/parser', extension);
+    assert.equal(computed.languageOptions.globals.window !== undefined, true, `${extension}: window é global`);
   }
+});
+
+test('react isolado: window, document e navigator não geram falsos positivos em .js e .jsx', () => {
+  const code = 'const a = window.innerWidth;\nconst d = document.title;\nconst n = navigator.userAgent;\n';
+  for (const extension of [ 'js', 'jsx' ]) {
+    assert.deepEqual(messagesOf(reactIsolated, code, virtual(`lote6-glob.${extension}`)), [], extension);
+  }
+});
+
+test('base + React: window e document não são mais reportados em .js; o resultado é igual ao do React isolado', () => {
+  const code = 'const a = window.innerWidth;\nconst d = document.title;\nconst n = navigator.userAgent;\n';
+  for (const extension of [ 'js', 'jsx' ]) {
+    assert.deepEqual(messagesOf(reactConfig, code, virtual(`lote6-glob-rec.${extension}`)), [], extension);
+  }
+});
+
+test('react isolado: código moderno em .js (campos de classe, encadeamento opcional, nullish) é parseado sem erro fatal', () => {
+  const code = 'class Caixa {\n  #valor = 1;\n  get v() {\n    return this.#valor ?? null;\n  }\n}\nexport const f = (o) => o?.a?.b ?? 0;\n';
+  const messages = linter.verify(code, reactIsolated, virtual('lote6-moderno.js'));
+  assert.equal(messages.filter((m) => m.fatal).length, 0);
+  assert.deepEqual(messages.filter((m) => m.ruleId === 'no-undef'), []);
 });
 
 test('baseConfig + reactNextConfig (composição recomendada): componente e variável são reportados uma vez em .js e .jsx', () => {

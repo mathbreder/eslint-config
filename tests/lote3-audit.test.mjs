@@ -52,14 +52,12 @@ test('no-eval sem globais de navegador: globalThis, global, eval direto e alias 
   }
 });
 
-test('no-eval com window declarada pelo preset React: reportado apenas em .jsx e .tsx', () => {
-  for (const ext of ['jsx', 'tsx']) {
+test('no-eval com window declarada pelo preset React: reportado em .js, .jsx e .tsx, e não em .ts (window é global do navegador nos três primeiros)', () => {
+  for (const ext of ['js', 'jsx', 'tsx']) {
     assert.equal(evalLines(EVAL_FORMS.window, `a.${ext}`, reactConfig), 1, `window ${ext}`);
     assert.equal(evalLines(EVAL_FORMS.bracket, `a.${ext}`, reactConfig), 1, `bracket ${ext}`);
   }
-  for (const ext of ['js', 'ts']) {
-    assert.equal(evalLines(EVAL_FORMS.window, `a.${ext}`, reactConfig), 0, `window ${ext}`);
-  }
+  assert.equal(evalLines(EVAL_FORMS.window, 'a.ts', reactConfig), 0, 'window ts');
 });
 
 test('no-eval com o preset Expo: window é reportado em todas as extensões', () => {
