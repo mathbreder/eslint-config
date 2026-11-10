@@ -73,14 +73,14 @@ export const baseConfig = defineConfig([
       'no-console': [ 'warn', { allow: [ 'warn', 'error' ] } ],
       'no-debugger': 'error',
       'max-lines-per-function': [ 'warn', { max: 80, skipBlankLines: true, skipComments: true } ],
-      'complexity': [ 'warn', { max: 10 } ],
+      complexity: [ 'warn', { max: 10 } ],
       'max-nested-callbacks': [ 'warn', { max: 3 } ],
       'no-duplicate-imports': 'error',
       'func-style': [ 'error', 'expression' ],
       'prefer-rest-params': 'error',
       'prefer-spread': 'error',
       'no-unsafe-optional-chaining': [ 'error', { disallowArithmeticOperators: true } ],
-      'eqeqeq': [ 'error', 'always' ],
+      eqeqeq: [ 'error', 'always' ],
       'max-depth': 'warn',
       'max-params': [
         'warn',
@@ -101,6 +101,8 @@ export const baseConfig = defineConfig([
       'no-throw-literal': 'error',
       'no-use-before-define': [ 'warn', { functions: false, classes: true, variables: true } ],
       'no-useless-constructor': 'warn',
+      'prefer-promise-reject-errors': 'error',
+      'require-await': 'warn',
 
       // Typescript specific rules
       '@typescript-eslint/no-unused-vars': [
@@ -139,28 +141,43 @@ export const baseConfig = defineConfig([
       'perfectionist/sort-intersection-types': [
         'error',
         {
-          'type': 'unsorted',
-          'newlinesBetween': 0,
-          'groups': perfectionistSortTypesGroups,
+          type: 'unsorted',
+          newlinesBetween: 0,
+          groups: perfectionistSortTypesGroups,
         },
       ],
       'perfectionist/sort-union-types': [
         'error',
         {
-          'newlinesBetween': 0,
-          'groups': perfectionistSortTypesGroups,
+          newlinesBetween: 0,
+          groups: perfectionistSortTypesGroups,
+        },
+      ],
+
+      'perfectionist/sort-named-imports': [
+        'error',
+        {
+          type: 'alphabetical',
+          order: 'asc',
+        },
+      ],
+      'perfectionist/sort-named-exports': [
+        'error',
+        {
+          type: 'alphabetical',
+          order: 'asc',
         },
       ],
 
       // Stylistic rules (general, non-JSX)
-      '@stylistic/array-bracket-newline': [ 'error', { 'multiline': true } ],
+      '@stylistic/array-bracket-newline': [ 'error', { multiline: true } ],
       '@stylistic/array-bracket-spacing': [ 'error', 'always' ],
       '@stylistic/array-element-newline': [ 'error', 'consistent' ],
       '@stylistic/arrow-parens': [ 'error', 'always' ],
-      '@stylistic/arrow-spacing': [ 'error', { 'before': true, 'after': true } ],
+      '@stylistic/arrow-spacing': [ 'error', { before: true, after: true } ],
       '@stylistic/block-spacing': [ 'error', 'always' ],
-      '@stylistic/brace-style': [ 'error', '1tbs', { 'allowSingleLine': true } ],
-      '@stylistic/comma-spacing': [ 'error', { 'before': false, 'after': true } ],
+      '@stylistic/brace-style': [ 'error', '1tbs', { allowSingleLine: true } ],
+      '@stylistic/comma-spacing': [ 'error', { before: false, after: true } ],
       '@stylistic/comma-dangle': [ 'error', 'always-multiline' ],
       '@stylistic/comma-style': [ 'error', 'last' ],
       '@stylistic/computed-property-spacing': [ 'error', 'never' ],
@@ -185,25 +202,25 @@ export const baseConfig = defineConfig([
       '@stylistic/max-len': [
         'error',
         {
-          'code': 100,
-          'ignoreUrls': true,
-          'ignoreStrings': true,
-          'ignoreTemplateLiterals': true,
-          'ignoreRegExpLiterals': true,
+          code: 100,
+          ignoreUrls: true,
+          ignoreStrings: true,
+          ignoreTemplateLiterals: true,
+          ignoreRegExpLiterals: true,
         },
       ],
       '@stylistic/no-multi-spaces': [ 'error' ],
-      '@stylistic/no-multiple-empty-lines': [ 'error', { 'max': 1, 'maxBOF': 0, 'maxEOF': 1 } ],
+      '@stylistic/no-multiple-empty-lines': [ 'error', { max: 1, maxBOF: 0, maxEOF: 1 } ],
       '@stylistic/no-trailing-spaces': [ 'error' ],
       '@stylistic/object-curly-newline': [
         'error',
         {
-          'multiline': true,
-          'consistent': true,
+          multiline: true,
+          consistent: true,
         },
       ],
       '@stylistic/object-curly-spacing': [ 'error', 'always' ],
-      '@stylistic/object-property-newline': [ 'error', { 'allowAllPropertiesOnSameLine': true } ],
+      '@stylistic/object-property-newline': [ 'error', { allowAllPropertiesOnSameLine: true } ],
       '@stylistic/quotes': [ 'error', 'single' ],
       '@stylistic/semi': [ 'error', 'always' ],
       '@stylistic/no-extra-semi': 'error',
@@ -223,9 +240,31 @@ export const baseConfig = defineConfig([
       '@stylistic/no-tabs': 'error',
       '@stylistic/no-whitespace-before-property': 'error',
       '@stylistic/semi-spacing': [ 'error', { before: false, after: true } ],
+      '@stylistic/operator-linebreak': [
+        'error',
+        'before',
+        {
+          overrides: {
+            '=': 'after',
+          },
+        },
+      ],
+      '@stylistic/padded-blocks': [ 'error', 'never' ],
+      '@stylistic/quote-props': [ 'warn', 'as-needed' ],
+      '@stylistic/rest-spread-spacing': [ 'error', 'never' ],
+      '@stylistic/semi-style': [ 'error', 'last' ],
+      '@stylistic/space-before-function-paren': [ 'error', { anonymous: 'always', named: 'never', asyncArrow: 'always' } ],
+      '@stylistic/space-before-blocks': [ 'error', 'always' ],
+      '@stylistic/space-infix-ops': 'error',
+      '@stylistic/space-unary-ops': [ 'error', { words: true, nonwords: false } ],
+      '@stylistic/switch-colon-spacing': [ 'error', { before: false, after: true } ],
+      '@stylistic/template-curly-spacing': [ 'error', 'never' ],
+      '@stylistic/template-tag-spacing': [ 'error', 'never' ],
+      '@stylistic/wrap-iife': [ 'error', 'inside' ],
+      '@stylistic/yield-star-spacing': [ 'error', 'after' ],
 
       // Require descriptions for eslint directive comments
-      'eslint-comments/require-description': [ 'error', { 'ignore': [] } ],
+      'eslint-comments/require-description': [ 'error', { ignore: [] } ],
     },
   },
   {
@@ -292,7 +331,7 @@ export const baseConfig = defineConfig([
     ],
     rules: {
       'max-lines-per-function': 'off',
-      'complexity': 'off',
+      complexity: 'off',
       '@typescript-eslint/no-empty-function': 'off',
     },
     languageOptions: {

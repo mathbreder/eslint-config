@@ -67,6 +67,7 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
   8. Eight rules are now `error`: `array-bracket-spacing`, `arrow-body-style` (core rule, `as-needed`), `arrow-parens`, `arrow-spacing`, `comma-style`, `computed-property-spacing`, `eol-last` and `function-call-spacing`. Projects that use the presets may see new lint errors, most of them fixable by autofix. See [Rule review, batch 1](#rule-review-batch-1).
   9. Six more Stylistic rules are now `error`: `function-call-argument-newline`, `function-paren-newline`, `generator-star-spacing`, `key-spacing`, `keyword-spacing` and `max-statements-per-line`. Projects that use the presets may see new lint errors. `jsx-a11y/anchor-ambiguous-text` is now `warn` in JSX and TSX, with a list of generic link texts. See [Rule review, batch 2](#rule-review-batch-2).
   10. Batch 3 makes these rules `error`: `multiline-ternary`, `new-parens`, `no-floating-decimal`, `no-tabs`, `no-whitespace-before-property`, `semi-spacing`, `no-eval`, `no-implied-eval` and `no-throw-literal`. It makes `no-mixed-operators`, `no-use-before-define` and `no-useless-constructor` `warn`. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 3](#rule-review-batch-3).
+  11. Batch 4 makes these rules `error`: `operator-linebreak`, `padded-blocks`, `rest-spread-spacing`, `semi-style`, `space-before-blocks`, `space-before-function-paren`, `space-infix-ops`, `space-unary-ops`, `switch-colon-spacing`, `template-curly-spacing`, `template-tag-spacing`, `wrap-iife`, `yield-star-spacing`, `prefer-promise-reject-errors` (outside `typeCheckedConfig`), `perfectionist/sort-named-imports` and `perfectionist/sort-named-exports`. It makes `quote-props` and `require-await` `warn`. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 4](#rule-review-batch-4).
   Version 0.1.0 is the first release with these changes. The `0.x` series allows breaking changes in a minor version.
 
 ### Installation
@@ -381,6 +382,65 @@ Notes on the decisions:
 - **`no-eval` and globals:** the core rule reads the global scope. It checks `window.eval` only if `window` is declared, and `globalThis`/`global` are reported without a declaration because they are standard or Node globals. `baseConfig` declares only Node and Jest globals, so `window.eval(...)` in `.js` or `.ts` is not reported. The typed configuration does not change this. Adding `window` to the base globals would change behavior for every consumer and needs a decision.
 - **Defaults added by ESLint:** `no-use-before-define` (core) and `@typescript-eslint/no-use-before-define` receive defaults such as `enums`, `typedefs` and `ignoreTypeReferences`. The approved options are the three in the table. The others are defaults, not extra configuration.
 - **Overlap, `max-statements-per-line` and `brace-style`:** described in batch 2. It is not a technical conflict, and it does not change in this batch.
+
+### Rule review, batch 4
+
+This batch reviewed 41 rules. Of these, 17 do not exist in the installed packages or were discarded by the review (marked "Discarded"). The rest are split into 18 new activations, 6 preserved settings and rules left unchanged. The table gives the state before and after, checked with `ESLint.calculateConfigForFile()` for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts` and `.cts`, under `baseConfig`, the React, Next.js and Expo presets, and `typeCheckedConfig`.
+
+| Rule | Modern implementation | Origin before | Severity before | Severity after | Options after | Reason |
+|---|---|---|---|---|---|---|
+| `no-wrap-func` | none | not installed | absent | not configured | — | Discarded. Not in the installed packages. |
+| `nonblock-statement-body-position` | `@stylistic/nonblock-statement-body-position` exists | not configured | absent | not configured | — | Discarded. Out of scope for this batch. |
+| `object-curly-newline` | `@stylistic/object-curly-newline` | `baseConfig` | `error` | `error` | `{ multiline: true, consistent: true }` | Preserved. |
+| `object-curly-spacing` | `@stylistic/object-curly-spacing` | `baseConfig` | `error` | `error` | `always` | Preserved. |
+| `object-property-newline` | `@stylistic/object-property-newline` | `baseConfig` | `error` | `error` | `{ allowAllPropertiesOnSameLine: true }` | Preserved. |
+| `one-var-declaration-per-line` | `@stylistic/one-var-declaration-per-line` exists | not configured | absent | not configured | — | Discarded. The `one-var` decision belongs to another batch. |
+| `operator-linebreak` | `@stylistic/operator-linebreak` | not configured | absent | `error` | `before`, with `overrides: { '=': 'after' }` | Operators go at the start of the continuation line. The `=` of assignments and type aliases stays at the end of the line. |
+| `padded-blocks` | `@stylistic/padded-blocks` | not configured | absent | `error` | `never` | No blank lines at the start or end of blocks. |
+| `paths/alias` | none installed | not installed | absent | not configured | — | Discarded. Aliases belong to the consuming project. |
+| `perfectionist/sort-named-exports` | `perfectionist/sort-named-exports` | not configured | absent | `error` | `{ type: 'alphabetical', order: 'asc' }` | Sorts named export members. See the notes below. |
+| `perfectionist/sort-named-imports` | `perfectionist/sort-named-imports` | not configured | absent | `error` | `{ type: 'alphabetical', order: 'asc' }` | Sorts named import members inside each import. |
+| `prefer-promise-reject-errors` | core; `@typescript-eslint/prefer-promise-reject-errors` with types | not configured | absent | core `error`; TS `error` in typed files | — | Rejects with non-Error values. The typed version replaces the core one. |
+| `quote-props` | `@stylistic/quote-props` | not configured | absent | `warn` | `as-needed` | Quotes on keys only when needed. |
+| `quotes` | `@stylistic/quotes` | `baseConfig` | `error` | `error` | `single` | Preserved. |
+| `require-await` | core; `@typescript-eslint/require-await` with types | not configured | absent | core `warn`; TS `warn` in typed files | — | Async functions must contain `await`. The typed version accepts awaitable returns. |
+| `rest-spread-spacing` | `@stylistic/rest-spread-spacing` | not configured | absent | `error` | `never` | `...a`, without a space. |
+| `semi-spacing` | `@stylistic/semi-spacing` | `baseConfig` (batch 3) | `error` | `error` | `{ before: false, after: true }` | Preserved. |
+| `semi-style` | `@stylistic/semi-style` | not configured | absent | `error` | `last` | The semicolon goes at the end of the line. |
+| `simple-import-sort/exports` | none installed | not installed | absent | not configured | — | Discarded. `import/order` is kept. |
+| `simple-import-sort/imports` | none installed | not installed | absent | not configured | — | Discarded. `import/order` is kept. |
+| `space-after-function-name` | none (replaced) | not existing | absent | not configured | — | Discarded. Replaced by `space-before-function-paren`. |
+| `space-after-keywords` | none (replaced) | not existing | absent | not configured | — | Discarded. Covered by `keyword-spacing` (batch 2). |
+| `space-before-blocks` | `@stylistic/space-before-blocks` | not configured | absent | `error` | `always` | Space before `{`. |
+| `space-before-function-paren` | `@stylistic/space-before-function-paren` | not configured | absent | `error` | `{ anonymous: 'always', named: 'never', asyncArrow: 'always' }` | Anonymous and async functions get a space; named functions do not. |
+| `space-before-function-parentheses` | none (replaced) | not existing | absent | not configured | — | Discarded. Replaced by `space-before-function-paren`. |
+| `space-before-keywords` | none (replaced) | not existing | absent | not configured | — | Discarded. Covered by `keyword-spacing` (batch 2). |
+| `space-in-brackets` | none (replaced) | not existing | absent | not configured | — | Discarded. Covered by `array-bracket-spacing`, `computed-property-spacing` and `object-curly-spacing`. |
+| `space-in-parens` | `@stylistic/space-in-parens` | `baseConfig` | `error` | `error` | `never` | Preserved. |
+| `space-infix-ops` | `@stylistic/space-infix-ops` | not configured | absent | `error` | default | Spaces around binary operators. |
+| `space-return-throw-case` | none (replaced) | not existing | absent | not configured | — | Discarded. Covered by `keyword-spacing` (batch 2). |
+| `space-unary-ops` | `@stylistic/space-unary-ops` | not configured | absent | `error` | `{ words: true, nonwords: false }` | Words get a space; symbols do not. |
+| `space-unary-word-ops` | none (replaced) | not existing | absent | not configured | — | Discarded. Replaced by `space-unary-ops`. |
+| `standard/array-bracket-even-spacing` | none installed | not installed | absent | not configured | — | Discarded. Stylistic `array-bracket-spacing` is kept. |
+| `standard/computed-property-even-spacing` | none installed | not installed | absent | not configured | — | Discarded. Stylistic `computed-property-spacing` is kept. |
+| `standard/object-curly-even-spacing` | none installed | not installed | absent | not configured | — | Discarded. Stylistic `object-curly-spacing` is kept. |
+| `switch-colon-spacing` | `@stylistic/switch-colon-spacing` | not configured | absent | `error` | `{ before: false, after: true }` | `case 1: x`. |
+| `template-curly-spacing` | `@stylistic/template-curly-spacing` | not configured | absent | `error` | `never` | `${value}`, without spaces. |
+| `template-tag-spacing` | `@stylistic/template-tag-spacing` | not configured | absent | `error` | `never` | A tag followed directly by its template, without a space. |
+| `wrap-iife` | `@stylistic/wrap-iife` | not configured | absent | `error` | `inside` | `(function () {})()`. Kept as `inside`, not the Stylistic default. |
+| `wrap-regex` | `@stylistic/wrap-regex` exists | not configured | absent | not configured | — | Kept off. `/abc/.test(value)` is not wrapped. |
+| `yield-star-spacing` | `@stylistic/yield-star-spacing` | not configured | absent | `error` | `after` | `yield* values`. |
+
+Notes on the decisions:
+
+- **Import and export order:** `perfectionist/sort-named-imports` and `perfectionist/sort-named-exports` sort only the named members inside each import or export. They do not change import groups, paths, aliases or `type` modifiers. `import/order` remains the only rule for group order, and it is unchanged. In a combined test, both fixes ran in one pass and the second pass changed nothing. Sorting ignores case by default, so `Config` comes before `defaultDefineConfig`.
+- **Promises and `await`:** the core rules apply to JavaScript and to TypeScript without `typeCheckedConfig`. With `typeCheckedConfig`, the TypeScript versions replace them for `.ts`, `.tsx`, `.mts` and `.cts`, so no file has two implementations. The two versions disagree on purpose: an `async` function that returns a Promise or a thenable without `await` is reported by the core rule and accepted by the typed one, because returning an awaitable from an `async` function is not a missing `await`.
+- **Overlap with function declarations:** the examples `function executar() {}` and `const processar = async (valor) => valor` pass the spacing rules. `func-style` (`expression`, an existing rule) still rejects function declarations, and `require-await` reports `async (valor) => valor` when there is no `await`. Neither result is changed by this batch.
+- **Typed rules:** `@typescript-eslint/prefer-promise-reject-errors` and `@typescript-eslint/require-await` need type information, so they apply only with `typeCheckedConfig`. The base configuration does not use them.
+- **Discarded rules:** the 17 discarded rules are either absent from the installed packages or replaced by an approved Stylistic rule. No plugin was added. `simple-import-sort`, `paths` and `standard` are not installed.
+- **Autofix on this repository:** the new `quote-props` rule removed unnecessary quotes from keys in `base.ts` and `react.ts`, and the new Perfectionist rule reordered one import in `utils.ts`. These are the only changes made by autofix. No logic changed.
+- **`operator-linebreak` and `=`:** with `before` alone, the rule also treats the `=` of assignments and type aliases as an operator. `const v =` followed by a line break became `const v` and `= valor`, and the leading-pipe union `export type X =` became `= | 'a'`. The approved setting keeps `before` for every operator and adds `overrides: { '=': 'after' }`, so `=` stays at the end of the line. `overrides: { '=': 'none' }` was rejected because it would forbid line breaks next to `=`, which the previous behavior allowed. Checked cases: variable assignments, type aliases, generic defaults, conditional (`?`, `:`) and logical operators, with stable autofix.
+- **`require-await` in `override-swc.ts`:** the helper `onLoad` is no longer `async`. It only registers the callback with `build.onLoad`, synchronously. The callback passed to `build.onLoad` keeps `async`, because it awaits `transformSwc`. `onLoad` is not exported and its only caller does not await it, so no consumer depends on a `Promise` return. `tests/override-swc.test.mjs` checks that registration is synchronous and that the transformation still removes types and emits a sourcemap. The signature change itself is protected by the lint rule, not by that runtime test.
 
 ### TypeScript files
 

@@ -70,7 +70,7 @@ const getCode = (swcOutput: swc.Output, sourcePath: string) => {
   return returnData;
 };
 
-const onLoad = async (build: EsbuildPluginBuild, tsConfig: TsconfigRaw) => {
+const onLoad = (build: EsbuildPluginBuild, tsConfig: TsconfigRaw) => {
   const filter = /\.[jt]sx?$/;
   build.onLoad({ filter }, async (args) => {
     const isTs = /\.tsx?$/.test(args.path);

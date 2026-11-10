@@ -1,4 +1,4 @@
-import { defineConfig as defaultDefineConfig, type Config } from 'eslint/config';
+import { type Config, defineConfig as defaultDefineConfig } from 'eslint/config';
 
 import { importPlugin } from './import-order';
 
