@@ -542,6 +542,63 @@ The composed autofix produces `export type Box<T = string> = T;`. `type-generic-
 - No plugin was added. No global of `baseConfig` changed. No severity or option approved in batches 1 to 4 changed.
 - On this repository, autofix changed four files in `src/`, and only blank lines or semicolons in single-line type literals: `src/eslint-configs/utils.ts`, `src/tsup-plugins/fix-dist-imports.ts`, `src/tsup-plugins/override-swc.ts` and `src/types/tsup-plugin.ts`.
 
+### Rule review, batch 6: JSX duplicates
+
+Four JSX rules were enabled twice, once from `eslint-plugin-react` and once from `@stylistic/eslint-plugin`. This batch removes the four Stylistic entries from the `stylistic-jsx` block of `reactNextConfig`. The React rules stay with the same severities and options, and no other rule changed. Compared with batch 5, only 16 effective configuration entries changed: these four rules in `.jsx` and `.tsx`, for the React and Next.js presets.
+
+| Pair | Removed Stylistic rule | Kept React rule | Finding |
+|---|---|---|---|
+| `jsx-closing-bracket-location` | `@stylistic/jsx-closing-bracket-location`: `warn`, `tag-aligned` | `react/jsx-closing-bracket-location`: `error`, `line-aligned` | Reproduced conflict |
+| `jsx-closing-tag-location` | `@stylistic/jsx-closing-tag-location`: `warn`, `tag-aligned` | `react/jsx-closing-tag-location`: `error`, `line-aligned` | Reproduced conflict |
+| `jsx-first-prop-new-line` | `@stylistic/jsx-first-prop-new-line`: `error`, `multiline` | `react/jsx-first-prop-new-line`: `error`, `multiline` | Duplicate diagnostics |
+| `jsx-newline` | `@stylistic/jsx-newline`: `error`, `prevent: true` | `react/jsx-newline`: `error`, `prevent: true`, `allowMultilines: false` | Duplicate diagnostics |
+
+#### Reproduced conflict
+
+The two alignment rules disagree when the opening tag does not start its line. `line-aligned` aligns the closing bracket or tag with the line that contains the opening tag. `tag-aligned` aligns it with the `<` itself. Two minimal cases, with the previous configuration:
+
+```jsx
+render(<A
+  p="1"
+/>);
+```
+
+`react/jsx-closing-bracket-location` accepts this code. `@stylistic/jsx-closing-bracket-location` expects `/>` at the column of `<`. After the autofix, the Stylistic warning remained, so the composed configuration did not converge on this code. In the same runs, ESLint reported `ESLintCircularFixesWarning` (circular fixes) for JSX in these positions.
+
+```jsx
+render(<Painel>
+  Conteúdo
+    </Painel>);
+```
+
+The same happens with `jsx-closing-tag-location`: the Stylistic warning remained after the autofix, and React accepted the output.
+
+In an object literal, `{ x: <A⏎  p="1"⏎/> }`, the previous configuration left a trailing space before the closing brace. The React rule alone produced clean output.
+
+#### Observed duplicates
+
+For `jsx-first-prop-new-line` and `jsx-newline`, both rules report the same line and column, with the same message and the same autofix. For `jsx-closing-tag-location` the two rules also report the same position when the closing tag is misaligned in a multi-line element. For `jsx-closing-bracket-location` in a ternary whose opening tag starts mid-line, both rules report the same position, but they expect different columns.
+
+#### Potential divergence, not reproduced
+
+Whenever the opening tag does not start its line, the two alignments can differ. In the cases tested, `jsx-wrap-multilines` (with `parens-new-line`) wraps the expression in parentheses first, and then both alignments coincide. The divergence therefore appears only where the wrapping rule does not apply, such as call arguments, array elements and object values.
+
+#### `react/jsx-no-undef` and `no-undef`
+
+Both rules stay. They are not equivalent, but they overlap in JavaScript files:
+
+- In `.jsx` and `.js`, `react/jsx-no-undef` and `no-undef` report the same component name at the same position (`ComponenteInexistente`). `no-undef` also reports variables referenced in expressions (`variavelInexistente`).
+- In `.tsx`, `no-undef` is `off` in the TypeScript block, so only `react/jsx-no-undef` reports the component. Undefined variables are reported by the TypeScript compiler, not by this configuration.
+
+The component-name overlap in `.jsx` and `.js` is a duplicate diagnostic. It is documented here and was not changed, because removing either rule was not approved in this batch. A decision is needed if the duplicate must be removed.
+
+#### Compatibility
+
+- Projects that use the React or Next.js presets see fewer diagnostics in JSX: the two `jsx-closing-*` warnings disappear, and the duplicate `jsx-first-prop-new-line` and `jsx-newline` errors are reported once.
+- The React errors remain, with the same severities and options, so the code that the React rules reject is still rejected.
+- The `expoConfig` preset alone is unchanged, and so is the `typeCheckedConfig` composition.
+- The tests are in `tests/lote6-jsx-duplicates.test.mjs`, with fixtures in `tests/fixtures/lote6/jsx-duplicates/`. They run the effective configuration and check the diagnostics, the autofix output and its second run.
+
 ### TypeScript files
 
 The rules in this section apply to `.ts`, `.tsx`, `.mts` and `.cts` files. `.mts` and `.cts` also receive the base configuration.

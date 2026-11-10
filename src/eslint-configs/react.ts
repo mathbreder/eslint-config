@@ -125,14 +125,6 @@ export const reactNextConfig = defineConfig([
     },
     rules: {
       // JSX specific stylistic rules
-      '@stylistic/jsx-closing-bracket-location': 1,
-      '@stylistic/jsx-closing-tag-location': 1,
-      '@stylistic/jsx-first-prop-new-line': [ 'error', 'multiline' ],
-      '@stylistic/jsx-newline': [
-        'error', {
-          prevent: true,
-        },
-      ],
       '@stylistic/jsx-one-expression-per-line': [ 'warn', { allow: 'single-line' } ],
       '@stylistic/jsx-quotes': [ 'error', 'prefer-double' ],
       '@stylistic/jsx-tag-spacing': [
