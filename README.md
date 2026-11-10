@@ -125,7 +125,7 @@ export default eslintConfigs.defineConfig([
 Presets available in `eslintConfigs`:
 
 - `baseConfig`: TypeScript, stylistic and perfectionist rules, plus general ESLint rules.
-- `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects.
+- `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects, together with `baseConfig`. For JavaScript and JSX files it does not detect undefined identifiers by itself. See [Rule review, batch 6: `react/jsx-no-undef` and `no-undef`](#rule-review-batch-6-reactjsx-no-undef-and-no-undef).
 - `typeCheckedConfig`: opt-in rules that need type information. See [Type-checked rules](#type-checked-rules-opt-in).
 - `nextConfig`: opt-in Next.js rules, from `@mathbreder/eslint-config/next`. See [Next.js](#nextjs).
 
@@ -625,15 +625,38 @@ Turning `no-undef` off would lose undefined variables in JavaScript, so that alt
 - **`expoConfig` with `reactNextConfig` in the same array.** The Expo rule comes later and enables `react/jsx-no-undef` again in `.js` and `.jsx`. Consumers who combine both in one array must put an override after `expoConfig`. Separate configs, as the README recommends for the monorepo case, avoid this.
 - **`.mjs` and `.cjs` with JSX** still report the component twice, because the override is limited to `.js` and `.jsx` as approved.
 
+#### `reactNextConfig` alone
+
+`reactNextConfig` does not include `no-undef`, and it turns `react/jsx-no-undef` off for `.js` and `.jsx`. So in those files, a project that uses `reactNextConfig` without `baseConfig` has no rule that reports an undefined component or variable. The measured results, with `ESLint.calculateConfigForFile()` and the rules run on the same code, are:
+
+| Composition | Undefined component in `.js` / `.jsx` | Undefined variable in `.js` / `.jsx` | Undefined component in `.tsx` |
+|---|---|---|---|
+| `reactNextConfig` alone | not reported | not reported | reported by `react/jsx-no-undef` |
+| `baseConfig` alone | reported by `no-undef` | reported by `no-undef` | not reported (TypeScript compiler) |
+| `baseConfig` + `reactNextConfig` (recommended) | reported once, by `no-undef` | reported once, by `no-undef` | reported once, by `react/jsx-no-undef` |
+| Next.js documented (`baseConfig` + `reactNextConfig` + `nextConfig`) | reported once, by `no-undef` | reported once, by `no-undef` | reported once, by `react/jsx-no-undef` |
+| `expoConfig` alone | reported twice (duplicate, kept) | reported by `no-undef` | reported by `react/jsx-no-undef` |
+
+Components that are imported, defined in the same file, used as properties of a defined object, or native elements are not reported in any composition. Undefined members (`<UI.Button />`) are reported in the same way as undefined components.
+
+Because of this, `reactNextConfig` must be combined with `baseConfig` for JavaScript and JSX files. The recommended composition is:
+
+```ts
+import { eslintConfigs } from '@mathbreder/eslint-config';
+
+export default eslintConfigs.defineConfig([
+  ...eslintConfigs.baseConfig,
+  ...eslintConfigs.reactNextConfig,
+]);
+```
+
+This composition is what the rest of this README documents. The table does not show that `reactNextConfig` alone is equivalent to it: it is not, for JavaScript and JSX.
+
 #### Tests
 
 - `tests/lote6-jsx-no-undef.test.mjs` runs 61 tests. They cover the 16 scenarios in `.js`, `.jsx` and `.tsx`, the fixtures in `tests/fixtures/lote6/jsx-no-undef/`, the effective configuration per composition and extension, the alternatives that were rejected, and the residual limitations above.
 - Mutation check: turning the override back to `error` makes 16 of these tests fail.
 - Three expectations of earlier tests described the duplicate that this batch removes, and were updated to the new behavior: `tests/react-inherited.test.mjs` (`react/jsx-no-undef` is `off` in `case.jsx`, and `no-undef` covers it), and two assertions in `tests/lote6-jsx-duplicates.test.mjs` (in `.jsx`, `no-undef` reports the component once, and `react/jsx-no-undef` is `off`).
-
-### TypeScript files
-
-The rules in this section apply to
 
 ### TypeScript files
 
