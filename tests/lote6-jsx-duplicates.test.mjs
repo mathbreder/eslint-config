@@ -260,11 +260,10 @@ test('reprodução do conflito anterior: tag-aligned do Stylistic deixa resíduo
   assert.deepEqual(tagResidual, [ '@stylistic/jsx-closing-tag-location' ]);
 });
 
-test('jsx-no-undef e no-undef: o nome do componente é reportado pelas duas em .jsx, e só pelo React em .tsx', () => {
+test('jsx-no-undef e no-undef: em .jsx o componente é reportado uma vez, por no-undef; em .tsx, uma vez por react/jsx-no-undef', () => {
   const code = 'const App = () => (\n  <ComponenteInexistente valor={variavelInexistente} />\n);\n';
   const jsx = linter.verify(code, reactConfig, JSX_FILE).filter((m) => [ 'react/jsx-no-undef', 'no-undef' ].includes(m.ruleId));
   assert.deepEqual(jsx.map((m) => [ m.ruleId, m.column ]), [
-    [ 'react/jsx-no-undef', 4 ],
     [ 'no-undef', 4 ],
     [ 'no-undef', 33 ],
   ]);
@@ -272,9 +271,9 @@ test('jsx-no-undef e no-undef: o nome do componente é reportado pelas duas em .
   assert.deepEqual(tsx.map((m) => m.ruleId), [ 'react/jsx-no-undef' ]);
 });
 
-test('jsx-no-undef e no-undef permanecem ativas na configuração efetiva', async () => {
+test('no-undef fica ativa em .jsx e react/jsx-no-undef em .tsx na configuração efetiva', async () => {
   const jsx = await effectiveRules(reactConfig, path.join(root, 'virtual-src', 'x.jsx'));
-  assert.equal(severityOf(jsx, 'react/jsx-no-undef'), SEV.error);
+  assert.equal(severityOf(jsx, 'react/jsx-no-undef'), SEV.off);
   assert.equal(severityOf(jsx, 'no-undef'), SEV.error);
   const tsx = await effectiveRules(reactConfig, path.join(root, 'virtual-src', 'x.tsx'));
   assert.equal(severityOf(tsx, 'react/jsx-no-undef'), SEV.error);

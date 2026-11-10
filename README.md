@@ -583,21 +583,57 @@ For `jsx-first-prop-new-line` and `jsx-newline`, both rules report the same line
 
 Whenever the opening tag does not start its line, the two alignments can differ. In the cases tested, `jsx-wrap-multilines` (with `parens-new-line`) wraps the expression in parentheses first, and then both alignments coincide. The divergence therefore appears only where the wrapping rule does not apply, such as call arguments, array elements and object values.
 
-#### `react/jsx-no-undef` and `no-undef`
-
-Both rules stay. They are not equivalent, but they overlap in JavaScript files:
-
-- In `.jsx` and `.js`, `react/jsx-no-undef` and `no-undef` report the same component name at the same position (`ComponenteInexistente`). `no-undef` also reports variables referenced in expressions (`variavelInexistente`).
-- In `.tsx`, `no-undef` is `off` in the TypeScript block, so only `react/jsx-no-undef` reports the component. Undefined variables are reported by the TypeScript compiler, not by this configuration.
-
-The component-name overlap in `.jsx` and `.js` is a duplicate diagnostic. It is documented here and was not changed, because removing either rule was not approved in this batch. A decision is needed if the duplicate must be removed.
-
 #### Compatibility
 
 - Projects that use the React or Next.js presets see fewer diagnostics in JSX: the two `jsx-closing-*` warnings disappear, and the duplicate `jsx-first-prop-new-line` and `jsx-newline` errors are reported once.
 - The React errors remain, with the same severities and options, so the code that the React rules reject is still rejected.
 - The `expoConfig` preset alone is unchanged, and so is the `typeCheckedConfig` composition.
 - The tests are in `tests/lote6-jsx-duplicates.test.mjs`, with fixtures in `tests/fixtures/lote6/jsx-duplicates/`. They run the effective configuration and check the diagnostics, the autofix output and its second run.
+
+### Rule review, batch 6: `react/jsx-no-undef` and `no-undef`
+
+The React and Next.js presets enabled `react/jsx-no-undef` and `no-undef` at the same time for JavaScript and JSX files. Both reported an undefined JSX component at the same position, so each mistake produced two diagnostics. This batch turns `react/jsx-no-undef` off for `**/*.{js,jsx}`, and keeps `no-undef` on. Nothing else changed.
+
+#### Why `no-undef` is kept and `react/jsx-no-undef` is turned off in JavaScript
+
+The coverage was compared case by case, in `.js`, `.jsx` and `.tsx`, with the effective configuration:
+
+| Case | `.js` / `.jsx`: both on | `.js` / `.jsx`: `react` off (kept) | `.js` / `.jsx`: `no-undef` off |
+|---|---|---|---|
+| Undefined component, `<ComponenteInexistente />` | 2 diagnostics, same position | 1, `no-undef` | 1, `react` |
+| Undefined variable, `{variavelInexistente}` | 1, `no-undef` | 1, `no-undef` | **0, lost** |
+| Undefined member, `<UI.Button />` | 2 | 1, `no-undef` | 1, `react` |
+| Undefined prop value, `key={chave}` | 3 | 2, `no-undef` | 1, `react`, and `chave` is lost |
+| Component defined locally or imported | 0 | 0 | 0 |
+| Native element, `<section />` | 0 | 0 | 0 |
+| Fragment, nested scope, defined component | 0 | 0 | 0 |
+| Global declared with `/* global */` | 1, `react` | 0 | 0 |
+
+Turning `no-undef` off would lose undefined variables in JavaScript, so that alternative was rejected. Turning off `react/jsx-no-undef` in `.tsx` would lose undefined components, because `no-undef` is already off in TypeScript files. So `.tsx` keeps `react/jsx-no-undef`.
+
+#### Preserved per extension
+
+- `.js`, `.jsx`: `no-undef` is `error`; `react/jsx-no-undef` is `off`, from the override.
+- `.tsx`: `react/jsx-no-undef` is `error`; `no-undef` is `off`, from the TypeScript block. This is unchanged.
+- `.ts`, `.mts`, `.cts`: `react/jsx-no-undef` is `error`, as before. These files cannot contain JSX, so the rule does not report anything there.
+- `.mjs`, `.cjs`: unchanged, so they keep both rules. See the residual cases below.
+
+#### Residual differences and limitations
+
+- **Declared globals.** `react/jsx-no-undef` has `allowGlobals` set to `false`, so it reports a component that is declared as a global. `no-undef` accepts declared globals. In `.js` and `.jsx` a declared global is no longer reported. This is a relaxation: it accepts a component that is really declared. `.tsx` is unchanged.
+- **`expoConfig` alone** defines `react/jsx-no-undef` as `error` for all files, and this package does not change the Expo preset. In `.js` and `.jsx`, the duplicate remains in that composition.
+- **`expoConfig` with `reactNextConfig` in the same array.** The Expo rule comes later and enables `react/jsx-no-undef` again in `.js` and `.jsx`. Consumers who combine both in one array must put an override after `expoConfig`. Separate configs, as the README recommends for the monorepo case, avoid this.
+- **`.mjs` and `.cjs` with JSX** still report the component twice, because the override is limited to `.js` and `.jsx` as approved.
+
+#### Tests
+
+- `tests/lote6-jsx-no-undef.test.mjs` runs 61 tests. They cover the 16 scenarios in `.js`, `.jsx` and `.tsx`, the fixtures in `tests/fixtures/lote6/jsx-no-undef/`, the effective configuration per composition and extension, the alternatives that were rejected, and the residual limitations above.
+- Mutation check: turning the override back to `error` makes 16 of these tests fail.
+- Three expectations of earlier tests described the duplicate that this batch removes, and were updated to the new behavior: `tests/react-inherited.test.mjs` (`react/jsx-no-undef` is `off` in `case.jsx`, and `no-undef` covers it), and two assertions in `tests/lote6-jsx-duplicates.test.mjs` (in `.jsx`, `no-undef` reports the component once, and `react/jsx-no-undef` is `off`).
+
+### TypeScript files
+
+The rules in this section apply to
 
 ### TypeScript files
 

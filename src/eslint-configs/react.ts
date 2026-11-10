@@ -156,4 +156,11 @@ export const reactNextConfig = defineConfig([
       'jsx-a11y/anchor-ambiguous-text': [ 'warn', { words: AMBIGUOUS_LINK_WORDS } ],
     },
   },
+  {
+    name: 'react-jsx-no-undef-deduplication',
+    files: [ '**/*.{js,jsx}' ],
+    rules: {
+      'react/jsx-no-undef': 'off',
+    },
+  },
 ]);
