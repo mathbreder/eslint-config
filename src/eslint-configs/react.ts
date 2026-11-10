@@ -44,15 +44,19 @@ export const reactNextConfig = defineConfig([
   reactHooksConfigs.flat.recommended,
   jsxA11yPlugin.flatConfigs.recommended,
   {
-    name: 'react-jsx',
-    files: [ '**/*.{jsx,tsx}' ],
-    plugins: {},
+    name: 'react-settings',
+    files: [ '**/*.{js,jsx,mjs,cjs,ts,tsx}' ],
     settings: {
       react: {
         version: 'detect',
         defaultVersion: '19.2.0',
       },
     },
+  },
+  {
+    name: 'react-jsx',
+    files: [ '**/*.{jsx,tsx}' ],
+    plugins: {},
     languageOptions: {
       globals: globals.browser,
     },
