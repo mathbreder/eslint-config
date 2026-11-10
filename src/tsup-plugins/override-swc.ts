@@ -39,9 +39,11 @@ const getTsConfigContent = (tsConfigPath: string): TsconfigRaw => {
     const filePath = path.resolve(process.cwd(), tsConfigPath);
     const content = fs.readFileSync(filePath, 'utf8');
     const cleanedContent = removeJsonTrailingComma(content);
+
     return JSON.parse(cleanedContent);
   } catch (e) {
     console.error(e);
+
     return {};
   }
 };
@@ -67,6 +69,7 @@ const getCode = (swcOutput: swc.Output, sourcePath: string) => {
     );
     returnData.contents += `//# sourceMappingURL=data:application/json;base64,${Buffer.from(JSON.stringify(map)).toString('base64')}`;
   }
+
   return returnData;
 };
 
@@ -82,6 +85,7 @@ const onLoad = (build: EsbuildPluginBuild, tsConfig: TsconfigRaw) => {
       baseUrl: compilerOptions.baseUrl || '.',
     });
     const result = await transformSwc(args.path, jsc);
+
     return getCode(result, args.path);
   });
 };

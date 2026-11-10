@@ -357,10 +357,19 @@ test('override de = com after: atribuições e aliases de tipo mantêm o = no fi
 
 test('override de = com after: = no início da linha seguinte é reportado e corrigido para o fim da linha', () => {
   const code = 'export type Box<T\n  = string> = T;\n';
-  assert.equal(ruleMsgs(code, 'eq-bad.ts', '@stylistic/operator-linebreak').length, 1);
-  const once = linter.verifyAndFix(code, baseConfig, virtualFile('eq-bad.ts')).output;
+  const isolated = [...baseConfig, { rules: { '@stylistic/type-generic-spacing': 'off' } }];
+  assert.equal(ruleMsgs(code, 'eq-bad.ts', '@stylistic/operator-linebreak', isolated).length, 1);
+  const once = linter.verifyAndFix(code, isolated, virtualFile('eq-bad.ts')).output;
   assert.equal(once, 'export type Box<T =\n  string> = T;\n');
-  assert.equal(linter.verifyAndFix(once, baseConfig, virtualFile('eq-bad.ts')).output, once);
+  assert.equal(linter.verifyAndFix(once, isolated, virtualFile('eq-bad.ts')).output, once);
+});
+
+test('conflito documentado: type-generic-spacing colapsa o = quebrado em genéricos e o resultado é estável', () => {
+  const code = 'export type Box<T\n  = string> = T;\n';
+  const first = linter.verifyAndFix(code, baseConfig, virtualFile('eq-conflito.ts')).output;
+  assert.equal(first, 'export type Box<T = string> = T;\n');
+  assert.equal(linter.verifyAndFix(first, baseConfig, virtualFile('eq-conflito.ts')).output, first);
+  assert.equal(ruleMsgs('export type Box<T =\n  string> = T;\n', 'eq-conflito-msg.ts', '@stylistic/type-generic-spacing').length, 1);
 });
 
 test('operator-linebreak before continua valendo para operadores lógicos e condicionais', () => {

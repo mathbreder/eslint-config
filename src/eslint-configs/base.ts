@@ -182,6 +182,7 @@ export const baseConfig = defineConfig([
       '@stylistic/comma-style': [ 'error', 'last' ],
       '@stylistic/computed-property-spacing': [ 'error', 'never' ],
       '@stylistic/dot-location': [ 'error', 'property' ],
+      '@stylistic/indent-binary-ops': [ 'warn', 2 ],
       '@stylistic/indent': [
         'error',
         2,
@@ -250,6 +251,14 @@ export const baseConfig = defineConfig([
         },
       ],
       '@stylistic/padded-blocks': [ 'error', 'never' ],
+      '@stylistic/padding-line-between-statements': [
+        'warn',
+        {
+          blankLine: 'always',
+          prev: '*',
+          next: 'return',
+        },
+      ],
       '@stylistic/quote-props': [ 'warn', 'as-needed' ],
       '@stylistic/rest-spread-spacing': [ 'error', 'never' ],
       '@stylistic/semi-style': [ 'error', 'last' ],
@@ -317,6 +326,21 @@ export const baseConfig = defineConfig([
           },
         },
       ],
+      '@stylistic/member-delimiter-style': [
+        'error',
+        {
+          multiline: {
+            delimiter: 'semi',
+            requireLast: true,
+          },
+          singleline: {
+            delimiter: 'semi',
+            requireLast: false,
+          },
+        },
+      ],
+      '@stylistic/type-generic-spacing': 'error',
+      '@stylistic/type-named-tuple-spacing': 'error',
     },
   },
   {

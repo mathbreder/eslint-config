@@ -235,5 +235,8 @@ test('arrow-body-style: autofix mantém o objeto literal entre parênteses', () 
 
 test('arrow-body-style: autofix não altera bloco com múltiplas instruções', () => {
   const code = 'const f = (v) => {\n  const doubled = v * 2;\n  return doubled;\n};\n';
-  assert.equal(fixed(code, 'abs-fix-multi.js').output, code);
+  assert.equal(residual(code, 'abs-fix-multi.js', ['arrow-body-style']).length, 0);
+  const output = fixed(code, 'abs-fix-multi.js').output;
+  assert.equal(output, 'const f = (v) => {\n  const doubled = v * 2;\n\n  return doubled;\n};\n');
+  assert.equal(output.replace('\n\n  return', '\n  return'), code);
 });

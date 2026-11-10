@@ -133,7 +133,16 @@ export const reactNextConfig = defineConfig([
           prevent: true,
         },
       ],
+      '@stylistic/jsx-one-expression-per-line': [ 'warn', { allow: 'single-line' } ],
       '@stylistic/jsx-quotes': [ 'error', 'prefer-double' ],
+      '@stylistic/jsx-tag-spacing': [
+        'error', {
+          closingSlash: 'never',
+          beforeSelfClosing: 'always',
+          afterOpening: 'never',
+          beforeClosing: 'allow',
+        },
+      ],
       '@stylistic/jsx-wrap-multilines': [
         'error', {
           declaration: 'parens-new-line',

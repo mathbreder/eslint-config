@@ -19,6 +19,7 @@ const isEquivalentImportPlugin = (left: PluginLike, right: PluginLike): boolean 
   if (bothVersioned && leftVersion !== rightVersion) return false;
   const sameRuleNames = JSON.stringify(ruleNames(left)) === JSON.stringify(ruleNames(right));
   if (!sameRuleNames) return false;
+
   return ruleNames(left).every((name) => ruleMetaOf(left, name) === ruleMetaOf(right, name));
 };
 
@@ -26,9 +27,11 @@ const canonicalizeImportPlugin = (configs: Config[]): Config[] => {
   const ownPlugin = importPlugin as PluginObject & PluginLike;
   const usesOwnPlugin = configs.some((cfg) => cfg.plugins?.[IMPORT_PLUGIN_NAME] === ownPlugin);
   if (!usesOwnPlugin) return configs;
+
   return configs.map((cfg) => {
     const plugin = cfg.plugins?.[IMPORT_PLUGIN_NAME] as PluginLike | undefined;
     if (!plugin || plugin === ownPlugin || !isEquivalentImportPlugin(plugin, ownPlugin)) return cfg;
+
     return {
       ...cfg,
       plugins: { ...cfg.plugins, [IMPORT_PLUGIN_NAME]: ownPlugin },
@@ -62,5 +65,6 @@ export const defineConfig = (...args: unknown[]): Config[] => {
     defaultDefineConfig(...(args as Parameters<typeof defaultDefineConfig>)) as Config[],
   );
   assertNoPluginCollisions(configs);
+
   return configs;
 };

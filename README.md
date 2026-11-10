@@ -68,6 +68,7 @@ Support for Node 18 was investigated and could not be kept. Node 18, Node 20.9 t
   9. Six more Stylistic rules are now `error`: `function-call-argument-newline`, `function-paren-newline`, `generator-star-spacing`, `key-spacing`, `keyword-spacing` and `max-statements-per-line`. Projects that use the presets may see new lint errors. `jsx-a11y/anchor-ambiguous-text` is now `warn` in JSX and TSX, with a list of generic link texts. See [Rule review, batch 2](#rule-review-batch-2).
   10. Batch 3 makes these rules `error`: `multiline-ternary`, `new-parens`, `no-floating-decimal`, `no-tabs`, `no-whitespace-before-property`, `semi-spacing`, `no-eval`, `no-implied-eval` and `no-throw-literal`. It makes `no-mixed-operators`, `no-use-before-define` and `no-useless-constructor` `warn`. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 3](#rule-review-batch-3).
   11. Batch 4 makes these rules `error`: `operator-linebreak`, `padded-blocks`, `rest-spread-spacing`, `semi-style`, `space-before-blocks`, `space-before-function-paren`, `space-infix-ops`, `space-unary-ops`, `switch-colon-spacing`, `template-curly-spacing`, `template-tag-spacing`, `wrap-iife`, `yield-star-spacing`, `prefer-promise-reject-errors` (outside `typeCheckedConfig`), `perfectionist/sort-named-imports` and `perfectionist/sort-named-exports`. It makes `quote-props` and `require-await` `warn`. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 4](#rule-review-batch-4).
+  12. Batch 5 makes these rules active: `@stylistic/indent-binary-ops` and `@stylistic/padding-line-between-statements` (`warn`), `@stylistic/member-delimiter-style`, `@stylistic/type-generic-spacing` and `@stylistic/type-named-tuple-spacing` (`error`, TypeScript files), and `@stylistic/jsx-one-expression-per-line` (`warn`) and `@stylistic/jsx-tag-spacing` (`error`) in the React and Next.js presets. Projects that use the presets may see new lint errors and warnings. See [Rule review, batch 5](#rule-review-batch-5).
   Version 0.1.0 is the first release with these changes. The `0.x` series allows breaking changes in a minor version.
 
 ### Installation
@@ -441,6 +442,105 @@ Notes on the decisions:
 - **Autofix on this repository:** the new `quote-props` rule removed unnecessary quotes from keys in `base.ts` and `react.ts`, and the new Perfectionist rule reordered one import in `utils.ts`. These are the only changes made by autofix. No logic changed.
 - **`operator-linebreak` and `=`:** with `before` alone, the rule also treats the `=` of assignments and type aliases as an operator. `const v =` followed by a line break became `const v` and `= valor`, and the leading-pipe union `export type X =` became `= | 'a'`. The approved setting keeps `before` for every operator and adds `overrides: { '=': 'after' }`, so `=` stays at the end of the line. `overrides: { '=': 'none' }` was rejected because it would forbid line breaks next to `=`, which the previous behavior allowed. Checked cases: variable assignments, type aliases, generic defaults, conditional (`?`, `:`) and logical operators, with stable autofix.
 - **`require-await` in `override-swc.ts`:** the helper `onLoad` is no longer `async`. It only registers the callback with `build.onLoad`, synchronously. The callback passed to `build.onLoad` keeps `async`, because it awaits `transformSwc`. `onLoad` is not exported and its only caller does not await it, so no consumer depends on a `Promise` return. `tests/override-swc.test.mjs` checks that registration is synchronous and that the transformation still removes types and emits a sourcemap. The signature change itself is protected by the lint rule, not by that runtime test.
+
+### Rule review, batch 5
+
+This batch received 131 rule entries. They correspond to 84 unique rules. 65 entries use the legacy `@stylistic/js/*` namespace, which maps to the same `@stylistic/*` rules. Two `@babel/*` entries map to Stylistic rules that were already configured, and three `@blitz/*` entries belong to a plugin that is not installed. Seven rules were activated. The other 77 unique rules are either already active and unchanged (55), not activated (19), or discarded (3).
+
+The effective configuration was compared with the previous commit using `ESLint.calculateConfigForFile()` for `.js`, `.jsx`, `.mjs`, `.cjs`, `.ts`, `.tsx`, `.mts` and `.cts`, under `baseConfig`, the React preset, the Next.js preset (with `reactNextConfig`), the Expo preset and `typeCheckedConfig`. Only the seven activated rules changed.
+
+#### Activated rules
+
+| Rule | Severity | Options | Applies to | Before |
+|---|---|---|---|---|
+| `@stylistic/indent-binary-ops` | `warn` | `2` | All files (`baseConfig`) | absent |
+| `@stylistic/padding-line-between-statements` | `warn` | `{ blankLine: 'always', prev: '*', next: 'return' }` | All files (`baseConfig`) | absent |
+| `@stylistic/member-delimiter-style` | `error` | `multiline: { delimiter: 'semi', requireLast: true }`, `singleline: { delimiter: 'semi', requireLast: false }` | `.ts`, `.tsx`, `.mts`, `.cts` | absent |
+| `@stylistic/type-generic-spacing` | `error` | none | `.ts`, `.tsx`, `.mts`, `.cts` | absent |
+| `@stylistic/type-named-tuple-spacing` | `error` | none | `.ts`, `.tsx`, `.mts`, `.cts` | absent |
+| `@stylistic/jsx-one-expression-per-line` | `warn` | `{ allow: 'single-line' }` | `.jsx`, `.tsx` in `reactNextConfig` | absent |
+| `@stylistic/jsx-tag-spacing` | `error` | `closingSlash: 'never'`, `beforeSelfClosing: 'always'`, `afterOpening: 'never'`, `beforeClosing: 'allow'` | `.jsx`, `.tsx` in `reactNextConfig` | absent |
+
+The four TypeScript-only rules do not need type information, so `projectService` is not enabled for them. `indent-binary-ops` and `padding-line-between-statements` are in `baseConfig`, so they apply to every file it covers. `@stylistic/indent-binary-ops` keeps the `warn` severity: it is not raised to `error` in this batch.
+
+#### Equivalent identifiers
+
+- `@stylistic/js/<rule>` (65 entries) is the same as `@stylistic/<rule>`. The legacy namespace is not registered.
+- `@stylistic/js/func-call-spacing` and `@stylistic/func-call-spacing` map to `@stylistic/function-call-spacing`, which keeps the `never` option.
+- `@babel/object-curly-spacing` maps to `@stylistic/object-curly-spacing`, and `@babel/semi` maps to `@stylistic/semi`. Both were already `error` with the approved options.
+- `@blitz/block-scope-case`, `@blitz/catch-error-name` and `@blitz/comment-syntax` belong to a plugin that is not installed. It was not added.
+
+#### Consolidated status
+
+| Status | Entries | Unique rules |
+|---|---|---|
+| Activated in this batch | 7 | 7 |
+| Already active and unchanged | 93 | 55 |
+| Not activated | 28 | 19 |
+| Discarded (plugin not installed) | 3 | 3 |
+| Total | 131 | 84 |
+
+Not activated, with the original names and the reason:
+
+| Rule | Original names | Reason |
+|---|---|---|
+| `@stylistic/line-comment-position` | `@stylistic/line-comment-position` | Not activated in this batch. |
+| `@stylistic/implicit-arrow-linebreak` | `@stylistic/implicit-arrow-linebreak`, `@stylistic/js/implicit-arrow-linebreak` | Not activated in this batch. |
+| `@stylistic/jsx-child-element-spacing` | `@stylistic/jsx-child-element-spacing` | `react/jsx-child-element-spacing` is already active, so no duplicate. |
+| `@stylistic/jsx-curly-newline` | `@stylistic/jsx-curly-newline` | `react/jsx-curly-newline` is already active. |
+| `@stylistic/jsx-curly-spacing` | `@stylistic/jsx-curly-spacing` | `react/jsx-curly-spacing` is already active. |
+| `@stylistic/jsx-equals-spacing` | `@stylistic/jsx-equals-spacing` | `react/jsx-equals-spacing` is already active. |
+| `@stylistic/jsx-indent` | `@stylistic/jsx-indent` | Obsolete implementation. `react/jsx-indent` is already active. |
+| `@stylistic/jsx-indent-props` | `@stylistic/jsx-indent-props` | `react/jsx-indent-props` is already active. |
+| `@stylistic/jsx-max-props-per-line` | `@stylistic/jsx-max-props-per-line` | `react/jsx-max-props-per-line` is already active. |
+| `@stylistic/jsx-props-no-multi-spaces` | `@stylistic/jsx-props-no-multi-spaces` | `@stylistic/no-multi-spaces` already covers props. |
+| `@stylistic/lines-around-comment` | `@stylistic/lines-around-comment`, `@stylistic/js/lines-around-comment` | Not activated in this batch. |
+| `@stylistic/newline-per-chained-call` | `@stylistic/newline-per-chained-call`, `@stylistic/js/newline-per-chained-call` | Not activated in this batch. |
+| `@stylistic/no-confusing-arrow` | `@stylistic/no-confusing-arrow`, `@stylistic/js/no-confusing-arrow` | Not activated in this batch. |
+| `@stylistic/no-extra-parens` | `@stylistic/no-extra-parens`, `@stylistic/js/no-extra-parens` | Not activated in this batch. |
+| `@stylistic/no-mixed-spaces-and-tabs` | `@stylistic/no-mixed-spaces-and-tabs`, `@stylistic/js/no-mixed-spaces-and-tabs` | Not activated in this batch. |
+| `@stylistic/nonblock-statement-body-position` | `@stylistic/nonblock-statement-body-position`, `@stylistic/js/nonblock-statement-body-position` | Not activated. It was also discarded in batch 4. |
+| `@stylistic/one-var-declaration-per-line` | `@stylistic/one-var-declaration-per-line`, `@stylistic/js/one-var-declaration-per-line` | Not activated. The `one-var` decision belongs to another batch. |
+| `@stylistic/type-annotation-spacing` | `@stylistic/type-annotation-spacing` | Kept off, because it overlaps with `key-spacing`. The coverage is documented below. |
+| `@stylistic/wrap-regex` | `@stylistic/wrap-regex`, `@stylistic/js/wrap-regex` | Kept off, as in batch 4. |
+
+#### Decisions
+
+- **React JSX rules are preserved.** The `react/jsx-*` rules remain the implementation for child spacing, curly spacing and newlines, equals spacing, indentation and props per line. Their Stylistic equivalents were not activated, to avoid duplicate diagnostics on the same tokens.
+- **`type-annotation-spacing` stays off.** `key-spacing` covers the colon in type members: type literals, property signatures in aliases, class properties and index signature keys. It does not cover variable annotations (`const x : number`), parameters (`(a : number)`), return types (`(): void`), function types (`(a : string) => void`), optional properties (`a ?: string`), method signatures (`m (): void`) or `as`. These gaps are documented here and were not closed by a new rule.
+- **`type` remains the preferred form.** `@typescript-eslint/consistent-type-definitions` still reports `interface`. `member-delimiter-style` checks only the members, so it does not change that preference.
+
+#### Scope
+
+- **JavaScript:** `indent-binary-ops` and `padding-line-between-statements` apply to every file in `baseConfig`.
+- **TypeScript:** `member-delimiter-style`, `type-generic-spacing` and `type-named-tuple-spacing` apply to `.ts`, `.tsx`, `.mts` and `.cts`. They are not type-aware.
+- **JSX:** `jsx-one-expression-per-line` and `jsx-tag-spacing` apply to `.jsx` and `.tsx` in `reactNextConfig`, which the React and Next.js presets use. `expoConfig` alone does not add them, as with the other Stylistic JSX rules.
+
+#### Interactions checked
+
+- **`indent-binary-ops` with `indent` and `operator-linebreak`.** A continuation inside parentheses with the wrong indentation is fixed by both rules, and the result is stable. An operator at the end of a line is moved by `operator-linebreak` and then indented by `indent-binary-ops`.
+- **`padding-line-between-statements` with `max-statements-per-line`, `padded-blocks` and comments.** A one-line body is split and receives the blank line in the same autofix. Padding at the start of a block is removed by `padded-blocks never`, and the blank line is placed before the `return`, not at the start of the block. When a comment precedes the `return`, the blank line goes before the comment.
+- **`member-delimiter-style` with `semi`, `key-spacing` and `consistent-type-definitions`.** Each rule reports its own problem on its own node, with no duplicate diagnostics.
+- **`type-named-tuple-spacing` with `key-spacing`.** Tuple labels are reported only by `type-named-tuple-spacing`.
+- **`jsx-tag-spacing` with `jsx-indent-props` and multi-line closing brackets.** `jsx-tag-spacing` accepts a closing bracket on its own line, and `jsx-indent-props` reports only the indentation of the props.
+
+#### Known conflict
+
+`type-generic-spacing` and `operator-linebreak` with `'=': 'after'` disagree about a line break inside a multi-line generic default:
+
+```ts
+export type Box<T
+  = string> = T;
+```
+
+The composed autofix produces `export type Box<T = string> = T;`. `type-generic-spacing` reports `<T =` followed by a line break as a spacing mismatch and removes the break. The result is stable: a second autofix changes nothing. The `=` override still applies when `type-generic-spacing` is off, which is verified in isolation. The approved rules were not changed. If the multi-line generic default form must be kept, this needs a decision.
+
+#### Compatibility
+
+- Projects that use the presets may see new warnings from `indent-binary-ops`, `padding-line-between-statements` and `jsx-one-expression-per-line`, and new errors from `member-delimiter-style`, `type-generic-spacing`, `type-named-tuple-spacing` and `jsx-tag-spacing`.
+- All seven rules have autofix. The fixes change whitespace, blank lines and separators only. For the TypeScript cases, the tests check that the fixed code has the same type structure.
+- No plugin was added. No global of `baseConfig` changed. No severity or option approved in batches 1 to 4 changed.
+- On this repository, autofix changed four files in `src/`, and only blank lines or semicolons in single-line type literals: `src/eslint-configs/utils.ts`, `src/tsup-plugins/fix-dist-imports.ts`, `src/tsup-plugins/override-swc.ts` and `src/types/tsup-plugin.ts`.
 
 ### TypeScript files
 
