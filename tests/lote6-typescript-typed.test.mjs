@@ -4,6 +4,7 @@ import path from 'node:path';
 import { test } from 'node:test';
 
 import { ESLint } from 'eslint';
+import tseslint from 'typescript-eslint';
 
 import { baseConfig, root } from './helpers.mjs';
 import { eslintConfigs } from '../dist/index.js';
@@ -132,9 +133,87 @@ test('sem diagnósticos duplicados: nenhuma regra tipada repete a mesma posiçã
   assert.deepEqual(keys.filter((key, index) => keys.indexOf(key) !== index), []);
 });
 
+const converge = async (dir, file, config = typed) => {
+  const filePath = path.join(dir, 'src', file);
+  const original = fs.readFileSync(filePath, 'utf8');
+  const warnings = [];
+  const onWarning = (warning) => warnings.push(warning.name);
+  process.on('warning', onWarning);
+  try {
+    const eslint = new ESLint({ cwd: dir, fix: true, overrideConfigFile: true, overrideConfig: defineConfig(config) });
+    const [first] = await eslint.lintText(original, { filePath });
+    const firstOutput = first.output ?? original;
+    const [second] = await eslint.lintText(firstOutput, { filePath });
+    const secondOutput = second.output ?? firstOutput;
+    await new Promise((resolve) => setImmediate(resolve));
+    return {
+      original,
+      firstOutput,
+      secondOutput,
+      firstChanged: firstOutput !== original,
+      converged: secondOutput === firstOutput,
+      remaining: second.messages,
+      circularWarnings: warnings.filter((name) => name === 'ESLintCircularFixesWarning').length,
+    };
+  } finally {
+    process.off('warning', onWarning);
+  }
+};
+
+test('convergência: a segunda passagem recebe a saída da primeira e não altera o código corrigido', async () => {
+  const run = await converge(strictDir, 'invalid.ts');
+  assert.notEqual(run.firstOutput, run.original, 'a primeira passagem deve modificar o código');
+  assert.equal(run.secondOutput, run.firstOutput, 'a segunda passagem deve produzir a mesma saída');
+  assert.equal(run.converged, true);
+  assert.equal(run.circularWarnings, 0, 'sem ESLintCircularFixesWarning');
+  assert.notEqual(run.firstOutput, run.original, 'a comparação não usa o original nas duas execuções');
+});
+
+test('convergência: os diagnósticos restantes correspondem a regras sem autofix', async () => {
+  const run = await converge(strictDir, 'invalid.ts');
+  const fixable = run.remaining.filter((m) => m.fix).map((m) => m.ruleId);
+  assert.deepEqual(fixable, [], 'nenhum diagnóstico restante deve ter autofix');
+  const suggestionsApplied = run.secondOutput.includes('pick(\'a\')') && !run.secondOutput.includes('pick<string>');
+  assert.ok(suggestionsApplied, 'correções aplicadas');
+  assert.ok(run.remaining.some((m) => m.ruleId === '@typescript-eslint/prefer-find'), 'sugestões não são aplicadas');
+});
+
+test('convergência: o mecanismo detecta uma saída que ainda pode ser modificada por outra passagem', async () => {
+  const growing = {
+    files: [ '**/*.ts' ],
+    languageOptions: { parser: tseslint.parser },
+    plugins: {
+      control: {
+        rules: {
+          grow: {
+            meta: { fixable: 'code' },
+            create(context) {
+              return {
+                Program(node) {
+                  if (context.sourceCode.text.length > 0) {
+                    context.report({
+                      node,
+                      message: 'sempre pode acrescentar',
+                      fix: (fixer) => fixer.insertTextAfterRange([ 0, context.sourceCode.text.length ], '/*x*/'),
+                    });
+                  }
+                },
+              };
+            },
+          },
+        },
+      },
+    },
+    rules: { 'control/grow': 'error' },
+  };
+  const run = await converge(strictDir, 'invalid.ts', [ growing ]);
+  assert.equal(run.firstChanged, true, 'a regra de controle modifica a primeira passagem');
+  assert.equal(run.converged, false, 'a verificação de convergência deve reprovar uma saída que ainda muda');
+});
+
 test('autofix do projeto estrito: correções seguras aplicadas e a segunda passagem não altera o código', async () => {
-  const once = await lintProject(strictDir, 'invalid.ts', { fix: true });
-  const output = once.output ?? fs.readFileSync(path.join(strictDir, 'src', 'invalid.ts'), 'utf8');
+  const run = await converge(strictDir, 'invalid.ts');
+  const output = run.secondOutput;
   for (const expected of [
     'export const pickedString = pick(\'a\');',
     'export const included = numbers.includes(1);',
@@ -196,3 +275,129 @@ test('preservação: as regras unsafe já aprovadas nos lotes anteriores mantêm
   assert.equal(severityOf(rules, '@typescript-eslint/prefer-promise-reject-errors'), SEV.error);
   assert.equal(severityOf(rules, '@typescript-eslint/require-await'), SEV.warn);
 });
+
+const normalize = (id) => id.replace('@typescript-eslint/', '');
+const pairKey = (a, b) => [ a, b ].map(normalize).sort().join('|');
+const RAW_LEGITIMATE_OVERLAPS = [
+  [ 'no-explicit-any|no-redundant-type-constituents','o any em uma união é o proibido (no-explicit-any) e também o que torna os outros tipos redundantes' ],
+  [ 'no-base-to-string|restrict-plus-operands', 'um objeto concatenado com string: uma regra pede toString, a outra reprova o operando' ],
+  [ 'prefer-template|restrict-plus-operands', 'concatenação com operando inválido: prefer-template sugere template, restrict-plus-operands reprova o operando' ],
+  [ 'no-base-to-string|prefer-template', 'concatenação de objeto: prefer-template oferece correção, no-base-to-string reprova a conversão implícita' ],
+  [ 'no-base-to-string|restrict-template-expressions', 'expressão de template com objeto: as duas regras reprovam a mesma expressão por motivos diferentes' ],
+  [ 'no-unnecessary-type-parameters|no-unused-vars', 'parâmetro de tipo usado uma vez (regra tipada) e variável de tipo sem uso (regra base)' ],
+  [ 'no-confusing-void-expression|@stylistic/array-bracket-spacing','expressão void dentro de outra expressão, e espaçamento de colchete (regra de formatação)' ],
+  [ 'no-confusing-non-null-assertion|no-non-null-assertion', 'asserção não nula em comparação (tipada) e a proibição geral de asserção não nula' ],
+  [ 'no-non-null-assertion|no-non-null-asserted-nullish-coalescing', 'asserção não nula no operando de ??: a proibição geral e a regra específica para ??' ],
+  [ 'no-floating-promises|no-unused-expressions', 'promessa solta: no-unused-expressions reprova a instrução, no-floating-promises reprova a promessa' ],
+  [ 'adjacent-overload-signatures|unified-signatures', 'overload não adjacente (regra base) e overload que poderia ser unificado (regra tipada): condições distintas' ],
+];
+const LEGITIMATE_OVERLAPS = new Map(RAW_LEGITIMATE_OVERLAPS.map(([ key, reason ]) => [ key.split('|').sort().join('|'), reason ]));
+
+const samePointPairs = (messages) => {
+  const found = [];
+  const rules = messages.filter((m) => m.ruleId);
+  for (let i = 0; i < rules.length; i++) {
+    for (let j = i + 1; j < rules.length; j++) {
+      const a = rules[i];
+      const b = rules[j];
+      if (a.ruleId === b.ruleId || a.line !== b.line || a.column !== b.column) continue;
+      found.push({
+        key: [ normalize(a.ruleId), normalize(b.ruleId) ].sort().join('|'),
+        line: a.line,
+        fixA: Boolean(a.fix),
+        fixB: Boolean(b.fix),
+        sameMessage: a.message === b.message,
+      });
+    }
+  }
+  return found;
+};
+
+const containmentPairs = (messages) => {
+  const found = [];
+  const rules = messages.filter((m) => m.ruleId && m.endLine === m.line);
+  const contains = (outer, inner) => outer.column <= inner.column && inner.endColumn <= outer.endColumn;
+  for (let i = 0; i < rules.length; i++) {
+    for (let j = i + 1; j < rules.length; j++) {
+      const a = rules[i];
+      const b = rules[j];
+      if (a.ruleId === b.ruleId || a.line !== b.line || b.endLine !== b.line) continue;
+      if (!contains(a, b) && !contains(b, a)) continue;
+      found.push({ key: pairKey(a.ruleId, b.ruleId), line: a.line, fixA: Boolean(a.fix), fixB: Boolean(b.fix) });
+    }
+  }
+  return found;
+};
+
+const sameRuleDuplicates = (messages) => {
+  const keys = messages.filter((m) => m.ruleId).map((m) => `${m.ruleId}|${m.line}|${m.column}|${m.endLine}|${m.endColumn}|${m.message}`);
+  return keys.filter((key, index) => keys.indexOf(key) !== index);
+};
+
+test('auditoria: nenhuma regra repete um diagnóstico idêntico (mesma regra, mesma posição, mesma mensagem)', async () => {
+  for (const file of [ 'invalid.ts', 'interactions.ts' ]) {
+    const result = await lintProject(strictDir, file);
+    assert.deepEqual(sameRuleDuplicates(result.messages), [], file);
+  }
+});
+
+test('auditoria: cada par de regras diferentes no mesmo ponto é legítimo, documentado e sem conflito de autofix', async () => {
+  const pairs = [
+    ...samePointPairs((await lintProject(strictDir, 'invalid.ts')).messages),
+    ...samePointPairs((await lintProject(strictDir, 'interactions.ts')).messages),
+  ];
+  const unclassified = pairs.filter((pair) => !LEGITIMATE_OVERLAPS.has(pair.key)).map((pair) => `${pair.key}@${pair.line}`);
+  assert.deepEqual(unclassified, [], 'par não documentado');
+  const conflicts = pairs.filter((pair) => pair.fixA && pair.fixB).map((pair) => `${pair.key}@${pair.line}`);
+  assert.deepEqual(conflicts, [], 'dois autofixes no mesmo ponto podem conflitar');
+});
+
+test('auditoria: cada sobreposição documentada aparece no fixture, para que a lista não fique desatualizada', async () => {
+  const strict = samePointPairs((await lintProject(strictDir, 'invalid.ts')).messages).map((pair) => pair.key);
+  const interactions = samePointPairs((await lintProject(strictDir, 'interactions.ts')).messages).map((pair) => pair.key);
+  const basicFile = path.join(root, 'tests', 'fixtures', 'lote6', 'typescript-basic', 'interactions.ts');
+  const linter = new (await import('eslint')).Linter({ configType: 'flat' });
+  const basicMessages = linter.verify(fs.readFileSync(basicFile, 'utf8'), baseConfig, basicFile);
+  const basic = [ ...samePointPairs(basicMessages), ...containmentPairs(basicMessages) ].map((pair) => pair.key);
+  const observed = new Set([ ...strict, ...interactions, ...basic ]);
+  const stale = [ ...LEGITIMATE_OVERLAPS.keys() ].filter((key) => !observed.has(key));
+  assert.deepEqual(stale, [], 'sobreposição documentada que não ocorre mais');
+});
+
+test('auditoria: as regras de promessas e unsafe não se sobrepõem a outras regras no mesmo ponto, exceto nos pares documentados', async () => {
+  const focus = new Set([ 'no-floating-promises', 'no-misused-promises', 'require-await', 'return-await', 'no-unnecessary-type-assertion', 'no-unsafe-assignment', 'no-unsafe-return', 'restrict-plus-operands', 'restrict-template-expressions' ]);
+  const pairs = samePointPairs((await lintProject(strictDir, 'invalid.ts')).messages);
+  const involved = pairs.filter((pair) => pair.key.split('|').some((name) => focus.has(name)));
+  for (const pair of involved) assert.ok(LEGITIMATE_OVERLAPS.has(pair.key), pair.key);
+  assert.ok(involved.length > 0, 'a verificação deve encontrar sobreposições reais nesse grupo');
+});
+
+test('auditoria: sobreposição conhecida de overloads é reconhecida como legítima, sem autofix', async () => {
+  const basicFile = path.join(root, 'tests', 'fixtures', 'lote6', 'typescript-basic', 'interactions.ts');
+  const linter = new (await import('eslint')).Linter({ configType: 'flat' });
+  const pairs = containmentPairs(linter.verify(fs.readFileSync(basicFile, 'utf8'), baseConfig, basicFile));
+  const overload = pairs.find((pair) => pair.key === 'adjacent-overload-signatures|unified-signatures');
+  assert.ok(overload, 'sobreposição observada: unified-signatures contido no intervalo de adjacent-overload-signatures, na mesma linha');
+  assert.equal(overload.line, 7);
+  assert.equal(overload.fixA || overload.fixB, false, 'nenhuma das duas oferece autofix');
+  assert.ok(LEGITIMATE_OVERLAPS.has(overload.key));
+});
+
+const typedCounts = async (config) => {
+  const result = await lintProject(strictDir, 'invalid.ts', { config });
+  const counts = new Map();
+  for (const m of result.messages) {
+    if (m.ruleId?.startsWith('@typescript-eslint/')) counts.set(normalize(m.ruleId), (counts.get(normalize(m.ruleId)) ?? 0) + 1);
+  }
+  return counts;
+};
+const coverageFailures = (counts) => TYPED_NAMES.filter((name) => (counts.get(name) ?? 0) === 0);
+let enabledTypedCounts;
+for (const [ name ] of TYPED) {
+  test(`mutação ${name}: a asserção de cobertura da suíte falha, e só para essa regra, quando a regra é desligada`, async () => {
+    enabledTypedCounts ??= await typedCounts(typed);
+    assert.deepEqual(coverageFailures(enabledTypedCounts), [], 'com a configuração real, todas as quarenta regras disparam');
+    const mutated = await typedCounts([ ...typed, { rules: { [`@typescript-eslint/${name}`]: 'off' } } ]);
+    assert.deepEqual(coverageFailures(mutated), [ name ], 'a suíte deve detectar a ausência exatamente dessa regra');
+  });
+}

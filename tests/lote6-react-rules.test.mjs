@@ -127,3 +127,12 @@ test('ESLint carrega react/no-unsafe a partir da configuração completa com o f
   assert.equal(result.messages.filter((m) => m.fatal).length, 0);
   assert.equal(result.messages.filter((m) => m.ruleId === RULE).length, 2);
 });
+
+test('mutação react/no-unsafe: a asserção de cobertura do fixture (linhas 4 e 6) falha quando a regra é desligada', () => {
+  const code = readFixture('invalid.jsx');
+  const file = path.join(fixtures, 'invalid.jsx');
+  const lines = (config) => noUnsafe(config, code, file).map((m) => m.line);
+  assert.deepEqual(lines(reactConfig), [ 4, 6 ], 'com a configuração real, as duas linhas são reportadas');
+  const off = [ ...reactConfig, { rules: { [RULE]: 'off' } } ];
+  assert.deepEqual(lines(off), [], 'a suíte deve detectar a ausência da regra');
+});

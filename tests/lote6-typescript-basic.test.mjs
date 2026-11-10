@@ -166,3 +166,17 @@ test('ESLint carrega a configuração e aplica as regras em arquivos reais sem p
   assert.equal(result.messages.filter((m) => m.fatal).length, 0);
   assert.ok(result.messages.some((m) => m.ruleId === '@typescript-eslint/consistent-type-imports'));
 });
+
+const basicFired = (messages) => new Set(messages
+  .filter((m) => BASIC.some((b) => m.ruleId === `@typescript-eslint/${b.rule}`))
+  .map((m) => m.ruleId.replace('@typescript-eslint/', '')));
+const basicCoverageFailures = (fired) => BASIC.map((b) => b.rule).filter((rule) => !fired.has(rule));
+for (const { rule } of BASIC) {
+  test(`mutação ${rule}: a asserção de cobertura do fixture inválido falha, e só para essa regra, quando a regra é desligada`, () => {
+    const code = readFixture('invalid.ts');
+    const file = fixturePath('invalid.ts');
+    const off = [ ...baseConfig, { rules: { [`@typescript-eslint/${rule}`]: 'off' } } ];
+    assert.deepEqual(basicCoverageFailures(basicFired(linter.verify(code, baseConfig, file))), [], 'com a configuração real, as nove regras disparam');
+    assert.deepEqual(basicCoverageFailures(basicFired(linter.verify(code, off, file))), [ rule ], 'a suíte deve detectar a ausência exatamente dessa regra');
+  });
+}
