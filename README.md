@@ -127,10 +127,10 @@ Presets available in `eslintConfigs`:
 - `baseConfig`: TypeScript, stylistic and perfectionist rules, plus general ESLint rules.
 - `reactNextConfig`: React, React Hooks, JSX a11y and JSX rules. Apply it to React projects, together with `baseConfig`. For JavaScript and JSX files it does not detect undefined identifiers by itself. See [Rule review, batch 6: `react/jsx-no-undef` and `no-undef`](#rule-review-batch-6-reactjsx-no-undef-and-no-undef).
 - `typeCheckedConfig`: opt-in rules that need type information. See [Type-checked rules](#type-checked-rules-opt-in).
-- `nextConfig`: opt-in Next.js rules, from `@mathbreder/eslint-config/next`. See [Next.js](#nextjs).
 
 Opt-in presets, not included in `eslintConfigs`:
 
+- `nextConfig`, from `@mathbreder/eslint-config/next`: opt-in Next.js rules from `@next/eslint-plugin-next`, an optional peer dependency (see [Requirements](#requirements)). Compose it with `baseConfig` and `reactNextConfig`: `...eslintConfigs.baseConfig, ...eslintConfigs.reactNextConfig, ...nextConfig`. See [Next.js](#nextjs).
 - `expoConfig`, from `@mathbreder/eslint-config/expo`: Expo defaults, from `eslint-config-expo` 58. It uses `react-hooks` 7 like `reactNextConfig`, so both can be combined in one config array in an installation where they resolve to the same plugin instance. The package checks this when you call `defineConfig` and fails with a clear message otherwise. See [React and Expo in one monorepo](#react-and-expo-in-one-monorepo) and [Migrating `expoConfig`](#migrating-expoconfig).
 - `viteReactRefreshConfig`, from `@mathbreder/eslint-config/react-refresh-vite`: see [React Refresh for Vite](#react-refresh-for-vite).
 
@@ -621,8 +621,9 @@ Turning `no-undef` off would lose undefined variables in JavaScript, so that alt
 #### Residual differences and limitations
 
 - **Declared globals.** `react/jsx-no-undef` has `allowGlobals` set to `false`, so it reports a component that is declared as a global. `no-undef` accepts declared globals. In `.js` and `.jsx` a declared global is no longer reported. This is a relaxation: it accepts a component that is really declared. `.tsx` is unchanged.
-- **`expoConfig` alone** defines `react/jsx-no-undef` as `error` for all files, and this package does not change the Expo preset. In `.js` and `.jsx`, the duplicate remains in that composition.
-- **`expoConfig` with `reactNextConfig` in the same array.** The Expo rule comes later and enables `react/jsx-no-undef` again in `.js` and `.jsx`. Consumers who combine both in one array must put an override after `expoConfig`. Separate configs, as the README recommends for the monorepo case, avoid this.
+- **`expoConfig` alone** reports an undefined component once, with `react/jsx-no-undef`, and an undefined variable with `no-undef`. There is no duplicate in that composition. This package does not change the Expo preset.
+- **`expoConfig` combined with `baseConfig`.** The duplicate appears in `.js` and `.jsx`: the component is reported by both rules in the same position. It is kept, because the Expo preset defines `react/jsx-no-undef` as `error` for all files.
+- **`expoConfig` placed after `reactNextConfig` in the same array, with `baseConfig`.** The Expo rule comes later and enables `react/jsx-no-undef` again in `.js` and `.jsx`. Consumers who combine them must put an override after `expoConfig`. Separate configs, as the README recommends for the monorepo case, avoid this.
 - **`.mjs` and `.cjs` with JSX** still report the component twice, because the override is limited to `.js` and `.jsx` as approved.
 
 #### `reactNextConfig` alone
@@ -635,7 +636,9 @@ Turning `no-undef` off would lose undefined variables in JavaScript, so that alt
 | `baseConfig` alone | reported by `no-undef` | reported by `no-undef` | not reported (TypeScript compiler) |
 | `baseConfig` + `reactNextConfig` (recommended) | reported once, by `no-undef` | reported once, by `no-undef` | reported once, by `react/jsx-no-undef` |
 | Next.js documented (`baseConfig` + `reactNextConfig` + `nextConfig`) | reported once, by `no-undef` | reported once, by `no-undef` | reported once, by `react/jsx-no-undef` |
-| `expoConfig` alone | reported twice (duplicate, kept) | reported by `no-undef` | reported by `react/jsx-no-undef` |
+| `expoConfig` alone | reported once, by `react/jsx-no-undef` | reported by `no-undef` | reported by `react/jsx-no-undef` |
+| `baseConfig` + `expoConfig` | reported twice in the same position (duplicate, kept) | reported by `no-undef` | reported by `react/jsx-no-undef` |
+| `baseConfig` + `reactNextConfig` + `expoConfig` | reported twice in the same position (duplicate, kept) | reported by `no-undef` | reported by `react/jsx-no-undef` |
 
 Components that are imported, defined in the same file, used as properties of a defined object, or native elements are not reported in any composition. Undefined members (`<UI.Button />`) are reported in the same way as undefined components.
 
@@ -654,7 +657,7 @@ This composition is what the rest of this README documents. The table does not s
 
 #### Tests
 
-- `tests/lote6-jsx-no-undef.test.mjs` runs 61 tests. They cover the 16 scenarios in `.js`, `.jsx` and `.tsx`, the fixtures in `tests/fixtures/lote6/jsx-no-undef/`, the effective configuration per composition and extension, the alternatives that were rejected, and the residual limitations above.
+- `tests/lote6-jsx-no-undef.test.mjs` runs 72 tests. They cover the 16 scenarios in `.js`, `.jsx` and `.tsx`, the fixtures in `tests/fixtures/lote6/jsx-no-undef/`, the effective configuration per composition and extension, the alternatives that were rejected, and the residual limitations above.
 - Mutation check: turning the override back to `error` makes 16 of these tests fail.
 - Three expectations of earlier tests described the duplicate that this batch removes, and were updated to the new behavior: `tests/react-inherited.test.mjs` (`react/jsx-no-undef` is `off` in `case.jsx`, and `no-undef` covers it), and two assertions in `tests/lote6-jsx-duplicates.test.mjs` (in `.jsx`, `no-undef` reports the component once, and `react/jsx-no-undef` is `off`).
 

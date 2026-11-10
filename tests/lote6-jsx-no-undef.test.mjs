@@ -19,7 +19,8 @@ const virtual = (name) => path.join(root, 'virtual-src', name);
 
 const reactNext = reactConfig;
 const nextPreset = [ ...reactConfig, ...nextConfig ];
-const expoAlone = [ ...baseConfig, ...expoConfig ];
+const expoAlone = expoConfig;
+const baseExpo = [ ...baseConfig, ...expoConfig ];
 const reactPlusExpo = [ ...reactConfig, ...expoConfig ];
 const typedPreset = [ ...baseConfig, ...eslintConfigs.typeCheckedConfig ];
 const previousState = [ ...reactConfig, { rules: { 'react/jsx-no-undef': 'error' } } ];
@@ -235,13 +236,13 @@ test('baseConfig e typeCheckedConfig não ganham react/jsx-no-undef', async () =
   }
 });
 
-test('limitação residual: expoConfig isolado mantém a duplicação em .js e .jsx, sem alteração do preset', async () => {
+test('limitação residual: baseConfig + expoConfig mantém a duplicação em .js e .jsx, sem alteração do preset Expo', async () => {
   for (const extension of [ 'js', 'jsx' ]) {
-    const rules = await effectiveRules(expoAlone, virtual(`x.${extension}`));
+    const rules = await effectiveRules(baseExpo, virtual(`x.${extension}`));
     assert.equal(severityOf(rules, 'react/jsx-no-undef'), SEV.error, extension);
     assert.equal(severityOf(rules, 'no-undef'), SEV.error, extension);
   }
-  const messages = messagesOf(expoAlone, 'const App = () => <ComponenteInexistente />;\n', virtual('lote6-expo.js'));
+  const messages = messagesOf(baseExpo, COMPONENT, virtual('lote6-expo.js'));
   assert.equal(messages.length, 2);
 });
 
@@ -259,8 +260,8 @@ test('limitação residual: .mjs e .cjs com JSX mantêm a duplicação, porque a
   }
 });
 
-test('expo: no-undef permanece ativa em .mts e .cts, fora do escopo de JSX', async () => {
-  const rules = await effectiveRules(expoAlone, virtual('x.mts'));
+test('base + expo: no-undef permanece ativa em .mts e .cts, fora do escopo de JSX', async () => {
+  const rules = await effectiveRules(baseExpo, virtual('x.mts'));
   assert.equal(severityOf(rules, 'no-undef'), SEV.error);
 });
 
@@ -296,7 +297,7 @@ test('react isolado: a regra react/jsx-no-undef está off em .js e .jsx, por cau
 });
 
 test('baseConfig + reactNextConfig (composição recomendada): componente e variável são reportados uma vez em .js e .jsx', () => {
-  const recommended = [ ...baseConfig, ...reactConfig ];
+  const recommended = reactConfig;
   for (const extension of [ 'js', 'jsx' ]) {
     assert.deepEqual(messagesOf(recommended, COMPONENT, virtual(`lote6-rec.${extension}`)), [ [ 'no-undef', 1, 20 ] ], extension);
     assert.deepEqual(messagesOf(recommended, VARIABLE, virtual(`lote6-rec.${extension}`)), [ [ 'no-undef', 2, 9 ] ], extension);
@@ -312,7 +313,7 @@ test('baseConfig isolado detecta componente e variável inexistentes em .js e .j
 });
 
 test('componentes importados, locais e elementos nativos não são reportados em nenhuma composição', () => {
-  const compositions = [ reactIsolated, baseConfig, [ ...baseConfig, ...reactConfig ], expoAlone ];
+  const compositions = [ reactIsolated, baseConfig, reactConfig, expoAlone, baseExpo ];
   const imported = "import { Painel } from './Painel';\nconst App = () => <Painel />;\n";
   const native = 'const App = () => <section />;\n';
   for (const config of compositions) {
@@ -322,20 +323,37 @@ test('componentes importados, locais e elementos nativos não são reportados em
   }
 });
 
-test('expoConfig isolado detecta componente e variável inexistentes em .js e .jsx, com a duplicação preservada', () => {
+test('expoConfig isolado: componente inexistente é reportado uma vez, por react/jsx-no-undef, e variável por no-undef, em .js e .jsx', () => {
   for (const extension of [ 'js', 'jsx' ]) {
-    assert.deepEqual(messagesOf(expoAlone, COMPONENT, virtual(`lote6-expo-cov.${extension}`)), [
-      [ 'react/jsx-no-undef', 1, 20 ],
-      [ 'no-undef', 1, 20 ],
-    ], extension);
-    assert.deepEqual(messagesOf(expoAlone, VARIABLE, virtual(`lote6-expo-cov.${extension}`)), [ [ 'no-undef', 2, 9 ] ], extension);
+    assert.deepEqual(messagesOf(expoAlone, COMPONENT, virtual(`lote6-expo-iso.${extension}`)), [ [ 'react/jsx-no-undef', 1, 20 ] ], extension);
+    assert.deepEqual(messagesOf(expoAlone, VARIABLE, virtual(`lote6-expo-iso.${extension}`)), [ [ 'no-undef', 2, 9 ] ], extension);
+    assert.deepEqual(duplicatePositions(messagesOf(expoAlone, COMPONENT, virtual(`lote6-expo-iso.${extension}`))), [], extension);
   }
 });
 
-test('reactNextConfig isolado e baseConfig + reactNextConfig diferem somente em .js e .jsx', async () => {
+test('baseConfig + expoConfig: componente inexistente é reportado duas vezes, na mesma posição, por react/jsx-no-undef e no-undef', () => {
+  for (const extension of [ 'js', 'jsx' ]) {
+    assert.deepEqual(messagesOf(baseExpo, COMPONENT, virtual(`lote6-base-expo.${extension}`)), [
+      [ 'react/jsx-no-undef', 1, 20 ],
+      [ 'no-undef', 1, 20 ],
+    ], extension);
+    assert.deepEqual(duplicatePositions(messagesOf(baseExpo, COMPONENT, virtual(`lote6-base-expo.${extension}`))), [ '1:20' ], extension);
+    assert.deepEqual(messagesOf(baseExpo, VARIABLE, virtual(`lote6-base-expo.${extension}`)), [ [ 'no-undef', 2, 9 ] ], extension);
+  }
+});
+
+test('base + React + Expo: o preset Expo reativa react/jsx-no-undef e reproduz a duplicação em .js e .jsx', async () => {
+  for (const extension of [ 'js', 'jsx' ]) {
+    assert.deepEqual(messagesOf(reactPlusExpo, COMPONENT, virtual(`lote6-rpe.${extension}`)).map(([ id ]) => id).sort(), [ 'no-undef', 'react/jsx-no-undef' ], extension);
+    const rules = await effectiveRules(reactPlusExpo, virtual(`x.${extension}`));
+    assert.equal(severityOf(rules, 'react/jsx-no-undef'), SEV.error, extension);
+  }
+});
+
+test('severidade de react/jsx-no-undef coincide nas duas composições (reactNextConfig isolado e baseConfig + reactNextConfig) para as extensões verificadas', async () => {
   for (const extension of [ 'mjs', 'cjs', 'ts', 'tsx' ]) {
     const isolated = await effectiveRules(reactIsolated, virtual(`x.${extension}`));
-    const recommended = await effectiveRules([ ...baseConfig, ...reactConfig ], virtual(`x.${extension}`));
+    const recommended = await effectiveRules(reactConfig, virtual(`x.${extension}`));
     assert.equal(severityOf(isolated, 'react/jsx-no-undef'), severityOf(recommended, 'react/jsx-no-undef'), extension);
   }
 });
