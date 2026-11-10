@@ -629,7 +629,7 @@ Turning `no-undef` off would lose undefined variables in JavaScript, so that alt
 
 #### `reactNextConfig` in JavaScript and JSX
 
-For `.js` and `.jsx` files, `reactNextConfig` now sets `no-undef` to `error` and uses the TypeScript-ESLint parser, and it turns `react/jsx-no-undef` off there. This makes the preset self-sufficient: it reports undefined components, members and variables without `baseConfig`. The parser is required, because `no-undef` only sees the names used in JSX when it runs with that parser. With the default parser, a `no-undef` rule alone reports variables but not components.
+For `.js` and `.jsx` files, `reactNextConfig` now sets `no-undef` to `error` and uses the TypeScript-ESLint parser, and it turns `react/jsx-no-undef` off there. This makes the preset self-sufficient: it reports undefined components, members and variables without `baseConfig`. The parser is required, because `no-undef` only sees the names used in JSX when it runs with that parser. With the default parser, a `no-undef` rule alone reports variables but not components. A consumer project that installs the packed package and uses only `reactNextConfig` checks this behavior in `tests/consumers/react` (`eslint.standalone.config.mjs`).
 
 The measured results, with ESLint run on the same code, are:
 
@@ -658,7 +658,7 @@ export default eslintConfigs.defineConfig([
 
 #### Browser globals in `.js` files
 
-`reactNextConfig` now also declares the browser globals (`globals.browser`) for `.js` files, as it already did for `.jsx` and `.tsx`. A React application uses `window`, `document` and `navigator` in plain modules too, so these names are no longer reported as undefined. The change affects the composed configurations as follows:
+`reactNextConfig` now also declares the browser globals (`globals.browser`) for `.js` files, as it already did for `.jsx` and `.tsx`. A React application uses `window`, `document` and `navigator` in plain modules too, so these names are no longer reported as undefined. The browser globals are available in every `.js` and `.jsx` file that receives the React preset, including files that run on the server, such as a server module with a `.js` extension. No server-specific override is provided. The change affects the composed configurations as follows:
 
 - **Base + React and Next.js, `.js`:** `window` and `document` were reported as undefined before. They are not reported now. Projects with these diagnostics see fewer errors. No rule changed in these compositions; only the globals did.
 - **React alone, `.js`:** `window`, `document` and `navigator` are not reported. Before the change, no rule reported them, because `no-undef` was not active in this composition.
