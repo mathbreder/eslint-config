@@ -70,6 +70,7 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
           ? [ 'error', { ignore: noUnresolvedIgnore } ]
           : 'error',
         'import/no-cycle': [ 'warn', { disableScc: true } ],
+        'import/no-relative-parent-imports': 'error',
       },
     },
   ];

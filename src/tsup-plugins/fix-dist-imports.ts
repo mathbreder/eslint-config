@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import type { BuildEnd, TsupPlugin } from '../types/tsup-plugin';
+import type { BuildEnd, TsupPlugin } from './types/tsup-plugin';
 
 const REL_IMPORT = /(from\s*['"]|^(?:import|export)\s*['"])(\.{1,2}\/[^'"]+)(['"])/gm;
 

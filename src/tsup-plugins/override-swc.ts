@@ -3,8 +3,8 @@ import path from 'path';
 
 import swc, { type JscConfig, type JscTarget } from '@swc/core';
 
-import type { EsbuildBuildOptions, EsbuildPlugin, EsbuildPluginBuild, TsconfigRaw } from '../types/esbuild-subset';
-import type { TsupPlugin } from '../types/tsup-plugin';
+import type { EsbuildBuildOptions, EsbuildPlugin, EsbuildPluginBuild, TsconfigRaw } from './types/esbuild-subset';
+import type { TsupPlugin } from './types/tsup-plugin';
 
 export type OverrideSwcOptions = EsbuildBuildOptions & {
   tsConfigPath?: string;
