@@ -1,6 +1,8 @@
 import type { Config } from 'eslint/config';
 import importPlugin from 'eslint-plugin-import';
 
+import { mathbrederPlugin } from '../rules';
+
 type Severity = 'error' | 'off' | 'warn' | 0 | 1 | 2;
 type ImportOrderRule = [Severity, Record<string, unknown>];
 
@@ -70,7 +72,19 @@ export const getEslintImportConfig = (opts?: GetEslintImportConfigOptions): Conf
           ? [ 'error', { ignore: noUnresolvedIgnore } ]
           : 'error',
         'import/no-cycle': [ 'warn', { disableScc: true } ],
-        'import/no-relative-parent-imports': 'error',
+      },
+    },
+    {
+      name: 'mathbreder-path-alias',
+      files: [ '**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}' ],
+      plugins: {
+        mathbreder: mathbrederPlugin,
+      },
+      rules: {
+        'mathbreder/prefer-path-alias': [
+          'error',
+          opts?.project === undefined ? {} : { project: opts.project },
+        ],
       },
     },
   ];

@@ -320,7 +320,7 @@ This batch reviewed 21 rules. The status below is the effective configuration, c
 | `import/default` | none | `expoConfig` (`off`) | off | off | Not enabled globally. Expo's resolver setup and TypeScript imports would produce false positives. |
 | `import/named` | none | `expoConfig` (`off`) | off | off | Same as `import/default`. |
 | `import/no-anonymous-default-export` | none | not configured | absent | absent | Kept off. Anonymous default exports are not restricted globally. |
-| `import/no-relative-parent-imports` | none | not configured | absent | absent | Kept off. Relative imports to parent directories remain allowed. |
+| `import/no-relative-parent-imports` | none | replaced | absent | absent | Replaced by `mathbreder/prefer-path-alias`, which only reports when an equivalent alias exists. |
 | `indent` | `@stylistic/indent` | `baseConfig` | `error`, 2 | `error`, 2 | Preserved with the same options. |
 | `indent-legacy` | none | not configured | absent | absent | Removed from ESLint. `@stylistic/indent` covers it. |
 | `jsx-a11y/anchor-ambiguous-text` | `jsx-a11y` plugin, option `words` | `reactNextConfig` (`.jsx` and `.tsx` only) | off | `warn`, with a list of generic link texts in Portuguese and English | Enabled for JSX and TSX only, not in `baseConfig`. The list keeps the plugin defaults, because `words` replaces them. See the note below. |
@@ -943,6 +943,19 @@ The path is resolved from the directory where ESLint runs (`process.cwd()`), not
 - `import/no-cycle` reports cycles between TypeScript files (`.ts`, `.tsx`, `.mts`, `.cts`). Before this update the preset did not set `import/extensions`, so the rule never reported cycles between `.ts` files. The preset now sets `import/extensions` to the TypeScript and JavaScript extensions, which is the same list `expoConfig` uses. As a consequence, projects that already had TypeScript cycles will see new `import/no-cycle` warnings after the update. Type-only imports are still ignored by the rule.
 - The tsup helpers (`fixBuildImportsPlugin` and `overrideSwcPlugin`) are still exported from the main entry. Their declarations no longer reference `esbuild`, so TypeScript consumers do not need `esbuild` installed and do not need `skipLibCheck: true`. The option type is a structural subset of esbuild's `BuildOptions`. A function annotated with the full esbuild type may need a cast when it is assigned to `esbuildOptions`.
 - `@swc/core` is a required peer dependency, because the main entry loads the tsup helper `overrideSwcPlugin`, which imports it. `eslint-config-expo` is an optional peer: only projects that import `@mathbreder/eslint-config/expo` need it.
+
+### Path aliases: `mathbreder/prefer-path-alias`
+
+`getEslintImportConfig` enables `mathbreder/prefer-path-alias` as `error`. It reports a static import, re-export or side-effect import whose specifier starts with `../` when a TypeScript `paths` alias or a `baseUrl` path resolves to exactly the same file. The autofix replaces only the string literal and keeps quotes, spacing and comments.
+
+- The equivalence is checked with the TypeScript module resolver: the alias is accepted only when resolving it yields the same file as the relative import.
+- When several aliases match, the most specific one wins (longest fixed prefix, then exact over wildcard, then key length, then lexicographic order), so the result is deterministic.
+- Without an equivalent alias, the relative import is allowed and nothing is reported.
+- Pass `project` (a path or a list of paths to `tsconfig` files) to `getEslintImportConfig`. Without it, the nearest `tsconfig.json` that includes the file is used. A file that no project includes is not checked.
+- Specifiers with query strings or hashes, dynamic `import()` and `require()` are not reported and never autofixed.
+- Limitation: the rule reads only the TypeScript configuration. TypeScript does not configure the bundler or the runtime, so an alias that type-checks still has to be configured in Vite, Webpack, Jest or the test runner. Only use the alias when that configuration exists.
+- The TypeScript package is loaded lazily from the project of the linted file, so configurations that do not use this rule do not load it.
+- `clearPathAliasCaches()` clears the caches for long-running processes.
 
 ## Tests
 
