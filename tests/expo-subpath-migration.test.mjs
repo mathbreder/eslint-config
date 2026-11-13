@@ -82,6 +82,6 @@ test('eslint-config-expo é peer opcional, então não é instalada automaticame
   assert.ok(pkg.peerDependencies['eslint-config-expo'], 'a peer continua declarada para quem usa o subpath');
 });
 
-test('a versão do pacote é 0.1.1, a release que corrige a publicação no npm', () => {
-  assert.equal(pkg.version, '0.1.1');
+test('a versão do pacote é 0.1.2, a release com a publicação por staging', () => {
+  assert.equal(pkg.version, '0.1.2');
 });
