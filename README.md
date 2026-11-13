@@ -995,7 +995,7 @@ The workflow `.github/workflows/npm-publish.yml` has three jobs, and they separa
 
 - **`build` (Node 22):** `pnpm install --frozen-lockfile`, build, lint, unit tests, `pnpm pack`, and `pnpm publish --dry-run`. It uploads the tarball as the `package-tarball` artifact. The build tooling (`tsup` 9) runs only here.
 - **`consumers` (matrix):** downloads that exact tarball and runs `node tests/consumers/run.mjs --tarball` on Node 20.19.0, 22.13.0, 22 (latest), 24 and 26. These jobs install no repository dependencies and do not run `tsup`, so they check what a consumer installs.
-- **`publish-npm`:** runs only when a release is created, after `build` and `consumers` pass. It publishes the same tarball that was tested, with `pnpm publish` and the `npm_token` repository secret.
+- **`publish-npm`:** runs only when a release is created, after `build` and `consumers` pass. It sends the same tarball that was tested to npm staging with `npm stage publish --provenance --access public`, authenticated only through OIDC (Trusted Publishing). No npm token is used. The version goes live only after manual approval with 2FA in Staged Packages on npm.
 
 The package is published with `publishConfig.access: public`, because it is scoped (`@mathbreder/...`). Before a release, run `pnpm run build && pnpm pack` and inspect the tarball, or run `pnpm run test:consumers`.
 
