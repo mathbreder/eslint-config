@@ -88,13 +88,13 @@ jobs:
         with:
           node-version: '22'
           registry-url: https://registry.npmjs.org/
-      - name: Atualizar npm para suportar Trusted Publishing
-        run: npm install -g npm@11
+      - name: Atualizar npm para suportar Staged Publishing
+        run: npm install -g "npm@^11.15.0"
       - uses: actions/download-artifact@v8
         with:
           name: package-tarball
           path: tarball
-      - name: Publicar o tarball verificado
+      - name: Enviar o tarball verificado para staging
         run: |
           test "$(ls tarball/*.tgz | wc -l)" -eq 1
-          npm publish "./$(ls tarball/*.tgz)" --provenance --access public
+          npm stage publish "./$(ls tarball/*.tgz)" --provenance --access public
